@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>PrepFlow Viewer</title>
+<style>/* INLINE_CSS */</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="brand"><span class="brand-icon">▤</span><strong>PrepFlow <span>Viewer</span></strong></div>
+  <div class="header-file">
+    <h1 id="file-name">PrepFlow Viewer</h1>
+    <div class="recent-picker" id="recent-picker" hidden>
+      <button id="recent-toggle" aria-haspopup="menu" aria-expanded="false" aria-controls="recent-menu"><span id="recent-name">フローを開いてください</span><span class="recent-path" id="recent-path"></span><span aria-hidden="true">⌄</span></button>
+      <div id="recent-menu" role="menu" aria-label="最近開いたフロー" hidden></div>
+    </div>
+    <div class="flow-view-tools">
+      <button class="header-button" id="about-button" title="フロー情報" aria-label="フロー情報">ⓘ</button>
+      <button class="header-button" id="fit-button" title="フロー全体を表示" aria-label="フロー全体を表示">⛶</button>
+      <button class="header-button" id="publish-button" title="Tableau Serverへパブリッシュ" aria-label="Tableau Serverへパブリッシュ" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg></button>
+    </div>
+  </div>
+  <div class="header-actions">
+  <div id="flow-edit-tools" hidden>
+    <button class="formula-tool" id="undo-flow" title="元に戻す" aria-label="元に戻す"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4 3 8l5 4M3 8h8a5 5 0 0 1 0 10"/></svg></button>
+    <button class="formula-tool" id="redo-flow" title="やり直す" aria-label="やり直す"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 4 5 4-5 4M17 8H9a5 5 0 0 0 0 10"/></svg></button>
+    <button class="button primary" id="save-flow">フローを保存</button>
+  </div>
+    <button class="button" id="export-button" hidden>↓ <span>HTMLを保存</span></button>
+    <button class="button primary" id="open-button">＋ <span>フローを開く</span></button>
+    <input type="file" id="file-input" accept=".tflx,.tfl" hidden>
+  </div>
+</header>
+<main class="workspace">
+  <section class="flow-section" aria-label="フロー図">
+    <div id="graph" class="graph">
+      <svg id="flow-svg" xmlns="http://www.w3.org/2000/svg" aria-label="フローのステップと接続"><defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="context-stroke"/></marker></defs><g id="viewport"><g id="edges"></g><g id="nodes"></g><g id="step-comments"></g></g></svg>
+      <div class="canvas-hint">ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示</div>
+      <div id="empty-state" hidden><div class="empty-icon">↥</div><p>ここに .tflx / .tfl をドロップ<br>データソースに接続せず、構造と加工内容を確認できます。</p><button class="button primary" id="empty-open">ファイルを選ぶ</button></div>
+    </div>
+  </section>
+  <div id="splitter" role="separator" aria-label="詳細パネルの幅を調整" aria-orientation="vertical" tabindex="0"><span></span></div>
+  <aside class="detail-section" aria-label="ステップの詳細">
+    <nav id="overview-tabs" class="detail-tabs overview-tabs" role="tablist" aria-label="フロー全体の情報" hidden>
+      <button role="tab" id="overview-info" data-overview-tab="info" aria-controls="detail-content" aria-selected="true" class="active">フロー情報</button>
+      <button role="tab" id="overview-connections" data-overview-tab="connections" aria-controls="detail-content" aria-selected="false" tabindex="-1">接続情報</button>
+      <button role="tab" id="overview-help" data-overview-tab="help" aria-controls="detail-content" aria-selected="false" tabindex="-1">使い方</button>
+    </nav>
+    <nav class="detail-tabs" role="tablist" aria-label="詳細の種類">
+      <button role="tab" id="tab-fields" data-tab="fields" aria-controls="detail-content" class="active">フィールド一覧</button>
+      <button role="tab" id="tab-actions" data-tab="actions" aria-controls="detail-content">変更内容</button>
+      <button role="tab" id="tab-settings" data-tab="settings" aria-controls="detail-content">設定・接続</button>
+    </nav>
+    <div class="detail-heading"><div id="selected-icon" class="selected-icon"></div><div class="selected-title"><h2 id="selected-name">ステップを選択</h2><p id="selected-summary">ステップをクリックすると、詳細を表示します。</p></div><div class="step-navigation"><button id="previous-step" class="step-arrow" aria-label="前のステップへ" title="前のステップへ" aria-expanded="false" aria-controls="step-choices" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><button id="next-step" class="step-arrow" aria-label="次のステップへ" title="次のステップへ" aria-expanded="false" aria-controls="step-choices" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div id="step-choices" class="step-choices" role="dialog" aria-label="移動先のステップを選択" hidden></div></div></div>
+    <div class="detail-search"><span>⌕</span><input id="detail-search" type="search" placeholder="フィールドを検索" aria-label="このステップ内を検索"></div>
+    <div id="detail-content" class="detail-content" role="tabpanel" aria-labelledby="tab-fields"></div>
+  </aside>
+</main>
+<footer class="statusbar"><span id="status-text">読み込み中…</span><span id="stats-text"></span></footer>
+<div id="drop-overlay" hidden><div><span>↥</span><h2>フローをここにドロップ</h2><p>.tflx / .tfl</p></div></div>
+<div id="busy-overlay" hidden><div class="spinner"></div><h2>フローの定義を読み込んでいます</h2><p>入力データの読み込みや接続は行いません</p></div>
+<div id="toast" role="status" hidden></div>
+<dialog id="info-dialog"><div class="dialog-heading"><h2>フロー情報</h2><button class="icon-button" id="close-info" aria-label="閉じる">×</button></div><div id="info-content"></div></dialog>
+<dialog id="file-error-dialog"><div class="dialog-heading"><h2>フローを開けませんでした</h2><button class="icon-button" id="close-file-error" aria-label="エラーを閉じる">×</button></div><p id="file-error-message"></p><button class="button primary" id="file-error-ok">OK</button></dialog>
+<div id="formula-backdrop" hidden></div>
+<dialog id="formula-dialog" aria-labelledby="formula-dialog-title">
+  <h2 id="formula-dialog-title" class="sr-only">計算式</h2>
+  <div class="formula-dialog-toolbar">
+    <div class="formula-tabs" role="tablist" aria-label="計算式の表示方法">
+      <button id="formula-original-tab" role="tab" data-formula-mode="original" aria-controls="formula-full" aria-selected="true">原文</button>
+      <button id="formula-formatted-tab" role="tab" data-formula-mode="formatted" aria-controls="formula-full" aria-selected="false" tabindex="-1">自動整形</button>
+    </div>
+    <button class="formula-tool" id="copy-formula" title="表示中の計算式をコピー" aria-label="表示中の計算式をコピー"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 12H3V3h9v4M8 8h9v9H8z"/></svg></button>
+    <button class="button primary" id="save-formula" hidden>変更を確定</button>
+    <button class="icon-button" id="close-formula" aria-label="計算式を閉じる" title="閉じる">×</button>
+  </div>
+  <p id="formula-save-error" role="alert" hidden></p>
+  <pre id="formula-full" class="code" role="region" aria-label="計算式" contenteditable="false" spellcheck="false" tabindex="0"></pre>
+</dialog>
+<dialog id="publish-dialog" aria-labelledby="publish-title">
+  <div class="dialog-heading"><h2 id="publish-title">Tableau Serverへパブリッシュ</h2><button class="icon-button" id="close-publish" aria-label="閉じる">×</button></div>
+  <form id="publish-form" autocomplete="off">
+    <div class="publish-fields">
+      <label for="publish-server">Server URL</label><input id="publish-server" type="url" placeholder="https://tableau.example.com" required>
+      <label for="publish-token-name">トークン名</label><input id="publish-token-name" required>
+      <label for="publish-token-value">トークン値</label><input id="publish-token-value" type="password" autocomplete="new-password" required>
+    </div>
+    <div class="publish-actions"><button class="button" id="test-publish-auth" type="button">認証テスト</button></div>
+    <div class="publish-fields">
+      <label for="publish-name">パブリッシュ名</label><input id="publish-name">
+      <label for="publish-project">パブリッシュ先</label><input id="publish-project" placeholder="親プロジェクト/子プロジェクト">
+    </div>
+    <p class="publish-note">確定済みの編集を含めて公開します。同じ公開先・名前のフローは上書きします。</p>
+    <div class="publish-actions"><button class="button primary" id="start-publish" type="submit">パブリッシュ</button></div>
+  </form>
+  <h3 class="publish-log-heading">実行ログ</h3><div id="publish-log" role="log" aria-live="polite" aria-label="パブリッシュ実行ログ"></div>
+</dialog>
+<script id="server-config" type="application/json">{}</script>
+<script id="flow-data" type="application/json">__FLOW_DATA__</script>
+<script>/* INLINE_JS */</script>
+</body>
+</html>

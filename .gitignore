@@ -1,0 +1,18 @@
+__pycache__/
+output/
+*.log
+.build-tools/
+build/
+dist/
+publish.ini
+build-password.txt
+*.py[cod]
+.venv/
+.env
+.env.*
+recent-flows.json
+*.exe
+*.zip
+# Locally edited flow copies
+/samples/*_Test.tflx
+/samples/PreppinData_2024_Week_27x.tflx
