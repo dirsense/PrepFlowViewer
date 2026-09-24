@@ -84,6 +84,7 @@ def main():
         '--onedir', '--windowed', '--name', 'PrepFlowViewer',
         '--distpath', str(ROOT / 'dist'), '--workpath', str(ROOT / 'build'),
         '--specpath', str(ROOT / 'build'),
+        '--manifest', str(ROOT / 'windows.manifest'),
         '--add-data', f'{ROOT / "web"};web',
         '--add-data', f'{ROOT / "open_folder.ps1"};.',
         '--exclude-module', 'tkinter',
