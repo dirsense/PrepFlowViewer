@@ -37,7 +37,6 @@
   <section class="flow-section" aria-label="フロー図">
     <div id="graph" class="graph">
       <svg id="flow-svg" xmlns="http://www.w3.org/2000/svg" aria-label="フローのステップと接続"><defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="context-stroke"/></marker></defs><g id="viewport"><g id="edges"></g><g id="nodes"></g><g id="step-comments"></g></g></svg>
-      <div class="canvas-hint">ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示</div>
       <div id="empty-state" hidden><div class="empty-icon">↥</div><p>ここに .tflx / .tfl をドロップ<br>データソースに接続せず、構造と加工内容を確認できます。</p><button class="button primary" id="empty-open">ファイルを選ぶ</button></div>
     </div>
   </section>
@@ -58,7 +57,7 @@
     <div id="detail-content" class="detail-content" role="tabpanel" aria-labelledby="tab-fields"></div>
   </aside>
 </main>
-<footer class="statusbar"><span id="status-text">読み込み中…</span><span id="stats-text"></span></footer>
+<footer class="statusbar"><span id="status-text">ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示</span><span id="stats-text"></span></footer>
 <div id="drop-overlay" hidden><div><span>↥</span><h2>フローをここにドロップ</h2><p>.tflx / .tfl</p></div></div>
 <div id="busy-overlay" hidden><div class="spinner"></div><h2>フローの定義を読み込んでいます</h2><p>入力データの読み込みや接続は行いません</p></div>
 <div id="toast" role="status" hidden></div>

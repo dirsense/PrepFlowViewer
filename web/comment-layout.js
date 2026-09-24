@@ -1,5 +1,4 @@
-// Reclaim only the extra rows reserved by saved step descriptions.
-// Other saved gaps and the horizontal arrangement remain intact.
+// Keep saved positions independent of comment length and display size.
 function wrapStepComment(text, measure, width=140){
   const lines=[];
   for(const paragraph of String(text).replace(/\r\n?/g,'\n').split('\n')){
@@ -13,38 +12,23 @@ function wrapStepComment(text, measure, width=140){
   return lines;
 }
 function commentLayout(nodes,expanded,measure,metrics={top:65,lineHeight:15}){
-  const rows=[...new Set(nodes.map(n=>n.position.y))].sort((a,b)=>a-b);
-  const rowY=new Map(),comments=new Map(),positions=new Map();
-  let y=70+(Math.min(...rows,0)<0?0:(rows[0]||0)*117);
-  for(let i=0;i<rows.length;i++){
-    const row=rows[i],group=nodes.filter(n=>n.position.y===row);
-    rowY.set(row,y);
-    let savedExtra=0,openExtra=0;
-    for(const n of group){
-      if(!n.description?.trim())continue;
-      const savedHeight=Math.max(1,Number(n.display?.size?.height)||1);
-      savedExtra=Math.max(savedExtra,savedHeight-1);
-      if(expanded.has(n.id)){
-        const lines=wrapStepComment(n.description,measure);
-        const bottom=metrics.top+(lines.length-1)*metrics.lineHeight;
-        comments.set(n.id,{lines,bottom});
-        openExtra=Math.max(openExtra,Math.ceil((bottom+48)/117)-1);
-      }
-    }
-    if(i+1<rows.length){
-      const gap=rows[i+1]-row;
-      const reclaimed=Math.min(savedExtra,Math.max(0,gap-1));
-      y+=(gap-reclaimed+openExtra)*117;
+  const comments=new Map(),positions=new Map();
+  const minX=Math.min(0,...nodes.map(n=>n.position.x));
+  const minY=Math.min(0,...nodes.map(n=>n.position.y));
+  for(const n of nodes){
+    positions.set(n.id,{x:95+(n.position.x-minX)*170,y:70+(n.position.y-minY)*117});
+    if(n.description?.trim()&&expanded.has(n.id)){
+      const lines=wrapStepComment(n.description,measure);
+      comments.set(n.id,{lines,bottom:metrics.top+(lines.length-1)*metrics.lineHeight});
     }
   }
-  const minX=Math.min(0,...nodes.map(n=>n.position.x));
-  for(const n of nodes)positions.set(n.id,{x:95+(n.position.x-minX)*170,y:rowY.get(n.position.y)});
-  const bounds={width:Math.max(300,...[...positions.values()].map(p=>p.x+95)),height:Math.max(150,...nodes.map(n=>positions.get(n.id).y+Math.max(80,(comments.get(n.id)?.bottom||0)+30)))};
+  // Leave a caption area below the last row, but never fit the map to full comments.
+  const bounds={width:Math.max(300,...[...positions.values()].map(p=>p.x+95)),height:Math.max(150,...[...positions.values()].map(p=>p.y+150))};
   return {positions,comments,bounds};
 }
 // Caption bounds are based on neighbouring steps, never a fixed comment line count.
-function graphTextArea(id,positions,zoom){
-  const p=positions.get(id);let width=140,bottom=Infinity;
+function graphTextArea(id,positions,zoom,mapBottom=Infinity){
+  const p=positions.get(id);let width=140,bottom=mapBottom-p.y;
   for(const [other,q] of positions){
     if(other===id)continue;
     if(Math.abs(q.y-p.y)<1&&q.x!==p.x)width=Math.min(width,Math.abs(q.x-p.x)-8/zoom);
@@ -64,7 +48,49 @@ function fitGraphText(text,measure,width,maxLines=Infinity){
 }
 function fitGraphComment(text,measure,width,maxLines=Infinity){
   // Use the current font's measured full-width glyphs, not the text's character count.
-  if(width<measure('あ'.repeat(6)))return [];
+  if(width<measure('あ'.repeat(8)))return [];
   return fitGraphText(text,measure,width,maxLines);
 }
-if(typeof module!=='undefined')module.exports={wrapStepComment,commentLayout,graphTextArea,fitGraphText,fitGraphComment};
+// Flatten the same cubic curve used by the SVG renderer, within half a screen pixel.
+function graphCurveSegments(x1,y1,x2,y2,bend,tolerance){
+  const segments=[],mid=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  function distance(p,a,b){
+    const dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
+    const t=length?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/length)):0;
+    return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);
+  }
+  function split(a,b,c,d,depth){
+    if(depth>=12||Math.max(distance(b,a,d),distance(c,a,d))<=tolerance){segments.push([a,d]);return;}
+    const ab=mid(a,b),bc=mid(b,c),cd=mid(c,d),abc=mid(ab,bc),bcd=mid(bc,cd),center=mid(abc,bcd);
+    split(a,ab,abc,center,depth+1);split(center,bcd,cd,d,depth+1);
+  }
+  split({x:x1,y:y1},{x:x1+bend,y:y1},{x:x2-bend,y:y2},{x:x2,y:y2},0);
+  return segments;
+}
+function graphSegmentHitsRect(a,b,rect){
+  let start=0,end=1;
+  for(const [v,delta,low,high] of [[a.x,b.x-a.x,rect.left,rect.right],[a.y,b.y-a.y,rect.top,rect.bottom]]){
+    if(Math.abs(delta)<1e-9){if(v<low||v>high)return false;continue;}
+    const t1=(low-v)/delta,t2=(high-v)/delta;
+    start=Math.max(start,Math.min(t1,t2));end=Math.min(end,Math.max(t1,t2));
+    if(start>end)return false;
+  }
+  return true;
+}
+function avoidGraphCommentOverlaps(text,measure,width,maxLines,geometry){
+  let lines=fitGraphComment(text,measure,width,maxLines);
+  const {x,y,fontSize,lineHeight,padding,segments,rectangles}=geometry;
+  while(lines.length){
+    const collision=lines.findIndex((line,i)=>{
+      const baseline=y+i*lineHeight;
+      const rect={left:x-padding,right:x+measure(line)+padding,top:baseline-fontSize-padding,bottom:baseline+fontSize*.25+padding};
+      return rectangles.some(r=>r.left<=rect.right&&r.right>=rect.left&&r.top<=rect.bottom&&r.bottom>=rect.top)
+        ||segments.some(([a,b])=>graphSegmentHitsRect(a,b,rect));
+    });
+    if(collision<0)return lines;
+    // Refit so the last safe line includes an ellipsis; check that ellipsis too.
+    lines=fitGraphComment(text,measure,width,collision);
+  }
+  return lines;
+}
+if(typeof module!=='undefined')module.exports={wrapStepComment,commentLayout,graphTextArea,fitGraphText,fitGraphComment,graphCurveSegments,graphSegmentHitsRect,avoidGraphCommentOverlaps};

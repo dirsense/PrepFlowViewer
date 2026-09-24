@@ -122,7 +122,7 @@ function graphEdgeOffset(kind,magnify){
 function applyTransform(){
   $('viewport').setAttribute('transform',`translate(${offset.x} ${offset.y}) scale(${scale})`);
   const sizes=graphTextSizes(scale,commentFont),font=sizes.title;
-  const titleY=32.255*sizes.icon+font*.8,titleBottoms=new Map();
+  const titleY=32.255*sizes.icon+font*.8,titleBottoms=new Map(),commentObstacles=[],edgeSegments=[];
   document.querySelectorAll('.flow-node').forEach(g=>{
     const n=byId.get(g.dataset.id),area=graphTextArea(n.id,positions,scale),label=g.querySelector('.node-name');
     commentMeasure.font=`${font}px "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif`;
@@ -144,18 +144,33 @@ function applyTransform(){
     const x=n.kind==='input'?-(19.845*sizes.icon+3)-width:-width/2;
     const y=n.kind==='input'?-6.5*magnify:-(n.kind==='clean'?8.415125:24.255)*sizes.icon-13*magnify;
     annotations.setAttribute('transform',`translate(${x} ${y}) scale(${magnify})`);
+    const p=positions.get(n.id);
+    const obstacle=(left,top,right,bottom)=>commentObstacles.push({id:n.id,left:p.x+left,top:p.y+top,right:p.x+right,bottom:p.y+bottom});
+    const halfWidth=n.kind==='clean'?48.565125:(n.kind==='pivot'?28.11375:n.kind==='join'?24.255:19.845)*sizes.icon;
+    const halfHeight=(n.kind==='clean'?4.465125:n.kind==='pivot'?18.7425:n.kind==='join'?24.255:19.845)*sizes.icon;
+    obstacle(-halfWidth,-halfHeight,halfWidth,halfHeight);
+    if(count)obstacle(x,y,x+width,y+13*magnify);
+    if(lines.length){
+      const titleWidth=Math.max(...lines.map(line=>commentMeasure.measureText(line).width));
+      obstacle(-titleWidth/2,titleY-font,titleWidth/2,titleBottoms.get(n.id)+font*.25);
+    }
+    if(n.description?.trim()){
+      const toggleScale=Math.max(1,.85/scale);
+      obstacle(65-3*toggleScale,titleY-font-3*toggleScale,65+20*toggleScale,titleY-font+20*toggleScale);
+    }
   });
   document.querySelectorAll('.flow-edge').forEach(path=>{
     const e=DATA.edges[Number(path.dataset.edge)],a=positions.get(e.source),b=positions.get(e.target);
     const x1=a.x+graphEdgeOffset(byId.get(e.source).kind,sizes.icon),x2=b.x-graphEdgeOffset(byId.get(e.target).kind,sizes.icon);
     const bend=Math.max(45,Math.abs(x2-x1)*.48);
     path.setAttribute('d',`M${x1} ${a.y} C${x1+bend} ${a.y},${x2-bend} ${b.y},${x2} ${b.y}`);
+    edgeSegments.push(...graphCurveSegments(x1,a.y,x2,b.y,bend,.5/scale));
   });
   document.querySelectorAll('.comment-toggle').forEach(g=>{
     g.setAttribute('transform',`translate(65 ${titleY-font}) scale(${Math.max(1,.85/scale)})`);
     g.querySelector(':scope > title')?.remove();
   });
-  // Fill the available vertical space, shortening only before another step.
+  // Allow ten extra lines below the map without changing layout or fit bounds.
   commentMeasure.font=`${sizes.comment}px "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif`;
   document.querySelectorAll('.step-comment').forEach(label=>{
     const node=byId.get(label.id.slice('comment-'.length));
@@ -163,9 +178,14 @@ function applyTransform(){
     const commentY=titleBottoms.get(node.id)+Math.max(10,6/scale)+4/scale+sizes.comment;
     label.style.fontSize=sizes.comment+'px';
     label.setAttribute('y',commentY);
-    const area=graphTextArea(node.id,positions,scale),lineHeight=Math.ceil(sizes.comment*1.25);
+    const lineHeight=Math.ceil(sizes.comment*1.25);
+    const area=graphTextArea(node.id,positions,scale,bounds.height-30+10*lineHeight);
     const limit=Math.max(0,Math.floor((area.bottom-commentY)/lineHeight)+1);
-    const lines=fitGraphComment(node.description,text=>commentMeasure.measureText(text).width,area.width,limit);
+    const p=positions.get(node.id);
+    const lines=avoidGraphCommentOverlaps(node.description,text=>commentMeasure.measureText(text).width,area.width,limit,{
+      x:p.x-area.width/2,y:p.y+commentY,fontSize:sizes.comment,lineHeight,padding:3/scale,
+      segments:edgeSegments,rectangles:commentObstacles.filter(r=>r.id!==node.id)
+    });
     label.setAttribute('x',-area.width/2);
     const truncated=lines.join('')!==node.description.replace(/\r?\n/g,'');
     if(truncated){
@@ -207,7 +227,7 @@ function init(model){
   document.title=`${DATA.name||'PrepFlow'} — PrepFlow Viewer`;
   $('file-name').textContent=DATA.name||'PrepFlow Viewer';$('file-name').title=DATA.name||'';
   syncRecentPicker();
-  $('status-text').textContent=DATA.nodes.length?`定義を読み込みました · ${DATA.stats.parseMs} ms`:'フローを開いてください';
+  $('status-text').textContent=DATA.nodes.length?'ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示':'フローを開いてください';
   $('stats-text').textContent=SERVER.token?'データ接続なし · 計算式を編集できます':'データ接続なし · HTMLプレビュー';
   $('empty-state').hidden=!!DATA.nodes.length;$('export-button').disabled=!DATA.nodes.length;$('open-button').hidden=!SERVER.token;
   renderGraph();selectNode(selected);requestAnimationFrame(fit);
