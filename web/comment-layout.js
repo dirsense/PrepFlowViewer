@@ -16,7 +16,7 @@ function commentLayout(nodes,expanded,measure,metrics={top:65,lineHeight:15}){
   const minX=Math.min(0,...nodes.map(n=>n.position.x));
   const minY=Math.min(0,...nodes.map(n=>n.position.y));
   for(const n of nodes){
-    positions.set(n.id,{x:95+(n.position.x-minX)*170,y:70+(n.position.y-minY)*117});
+    positions.set(n.id,{x:95+(n.position.x-minX)*195.5,y:70+(n.position.y-minY)*117});
     if(n.description?.trim()&&expanded.has(n.id)){
       const lines=wrapStepComment(n.description,measure);
       comments.set(n.id,{lines,bottom:metrics.top+(lines.length-1)*metrics.lineHeight});
