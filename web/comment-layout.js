@@ -62,4 +62,9 @@ function fitGraphText(text,measure,width,maxLines=Infinity){
     return chars.join('')+'…';
   });
 }
-if(typeof module!=='undefined')module.exports={wrapStepComment,commentLayout,graphTextArea,fitGraphText};
+function fitGraphComment(text,measure,width,maxLines=Infinity){
+  // Use the current font's measured full-width glyphs, not the text's character count.
+  if(width<measure('あ'.repeat(6)))return [];
+  return fitGraphText(text,measure,width,maxLines);
+}
+if(typeof module!=='undefined')module.exports={wrapStepComment,commentLayout,graphTextArea,fitGraphText,fitGraphComment};

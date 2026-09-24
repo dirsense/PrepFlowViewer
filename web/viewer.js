@@ -165,7 +165,7 @@ function applyTransform(){
     label.setAttribute('y',commentY);
     const area=graphTextArea(node.id,positions,scale),lineHeight=Math.ceil(sizes.comment*1.25);
     const limit=Math.max(0,Math.floor((area.bottom-commentY)/lineHeight)+1);
-    const lines=fitGraphText(node.description,text=>commentMeasure.measureText(text).width,area.width,limit);
+    const lines=fitGraphComment(node.description,text=>commentMeasure.measureText(text).width,area.width,limit);
     label.setAttribute('x',-area.width/2);
     const truncated=lines.join('')!==node.description.replace(/\r?\n/g,'');
     if(truncated){

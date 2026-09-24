@@ -38,3 +38,13 @@ assert.equal(graphTextArea('b',points,.5).bottom,Infinity,'Last step can show it
 assert.equal(fitGraphText('😀',s=>s==='…'?6:20,10,2).join(''),'…');
 assert.equal(fitGraphText('abc',textMeasure,4).length,0,'Do not spill into a neighbouring column');
 console.log('Comment visibility: available-space line count, lower-step clearance and measured ellipsis passed.');
+
+const {fitGraphComment}=require('../web/comment-layout.js');
+const mixedMeasure=s=>Array.from(s).reduce((w,c)=>w+(c.charCodeAt(0)<128?6:12),0);
+for(const text of ['あいうえおかきくけこ','abc123日本語DEF','ASCII letters only']){
+  assert.deepEqual(fitGraphComment(text,mixedMeasure,71),[],'Hide below six full-width glyphs');
+  assert.ok(fitGraphComment(text,mixedMeasure,72).length>0,'Show at the measured width threshold');
+}
+assert.deepEqual(fitGraphComment('コメント',s=>mixedMeasure(s)*2,72),[],'Larger font needs more width');
+assert.ok(fitGraphComment(longComment,mixedMeasure,140).length>3,'Available height still controls the line count');
+console.log('Narrow comments: full-width measurement, mixed text, zoom and no fixed line cap passed.');
