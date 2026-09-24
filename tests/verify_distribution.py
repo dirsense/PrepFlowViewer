@@ -23,6 +23,10 @@ def model_from(html):
     return json.loads(re.search(r'<script id="flow-data" type="application/json">(.*?)</script>', html, re.S)[1])
 
 
+def config_from(html):
+    return json.loads(re.search(r'<script id="server-config" type="application/json">(.*?)</script>', html, re.S)[1])
+
+
 def verify():
     with tempfile.TemporaryDirectory(prefix='配布検証_', dir=ROOT / 'output') as temporary:
         target = Path(temporary)
@@ -75,6 +79,7 @@ def verify():
         with launch():
             html = urlopen(base).read().decode('utf-8')
             assert model_from(html)['nodes'] == []
+            assert config_from(html)['restoredFlow'] is False
             assert 'フローの中身を、すぐに。' not in html
             assert "mode:'original',history" in html
             assert 'data-join-region="overlap"' in html
@@ -154,12 +159,18 @@ def verify():
         file = target / 'remember.tflx'
         file.write_bytes(archive.getvalue())
         with launch(file):
-            assert model_from(urlopen(base).read().decode())['name'] == 'remember.tflx'
+            page = urlopen(base).read().decode()
+            assert model_from(page)['name'] == 'remember.tflx'
+            assert config_from(page)['restoredFlow'] is False
         with launch():
-            assert model_from(urlopen(base).read().decode())['name'] == 'remember.tflx'
+            page = urlopen(base).read().decode()
+            assert model_from(page)['name'] == 'remember.tflx'
+            assert config_from(page)['restoredFlow'] is True
         file.unlink()
         with launch():
-            assert model_from(urlopen(base).read().decode())['nodes'] == []
+            page = urlopen(base).read().decode()
+            assert model_from(page)['nodes'] == []
+            assert config_from(page)['restoredFlow'] is False
         print('Persistent recent file and missing-file removal in packaged EXE: passed', flush=True)
 
 

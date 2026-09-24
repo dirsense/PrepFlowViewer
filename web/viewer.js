@@ -229,7 +229,8 @@ function fit(){
 function zoom(factor,x,y){autoFit=false;const r=$('graph').getBoundingClientRect();x??=r.width/2;y??=r.height/2;const next=Math.min(3,Math.max(.08,scale*factor));offset.x=x-(x-offset.x)*next/scale;offset.y=y-(y-offset.y)*next/scale;scale=next;applyTransform();}
 
 
-function init(model){
+function init(model,{restored=false}={}){
+  const openingOverview=model.nodes.length&&(byId.size>0||restored)?'info':'help';
   closeFormulaPopup();
   DATA=model;byId=new Map(DATA.nodes.map(n=>[n.id,n]));
   const sessionKey=DATA.exportKey||DATA.name;
@@ -240,7 +241,7 @@ function init(model){
   expandedComments=new Set(DATA.nodes.filter(n=>n.description?.trim()&&(!n.display?.size||n.display.size.height>1)).map(n=>n.id));
   $('info-dialog').close();
   closeStepChoices();
-  selected=DATA.nodes.find(n=>n.kind==='input'&&n.actions.length)?.id||DATA.nodes[0]?.id||null;
+  selected=null;
   activeTab='fields';fieldMode='all';changesMode='all';$('detail-search').value='';
   document.title=`${DATA.name||'PrepFlow'} — PrepFlow Viewer`;
   $('file-name').textContent=DATA.name||'PrepFlow Viewer';$('file-name').title=DATA.name||'';
@@ -248,7 +249,7 @@ function init(model){
   $('status-text').textContent=DATA.nodes.length?'ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示':'フローを開いてください';
   $('stats-text').textContent=SERVER.token?'データ接続なし · 計算式を編集できます':'データ接続なし · HTMLプレビュー';
   $('empty-state').hidden=!!DATA.nodes.length;$('export-button').disabled=!DATA.nodes.length;$('open-button').hidden=!SERVER.token;
-  renderGraph();selectNode(selected);requestAnimationFrame(fit);
+  renderGraph();selectNode(null,openingOverview);requestAnimationFrame(fit);
 }
 function adjacentSteps(direction){return [...new Set(byId.get(selected)?.[direction]||[])].filter(id=>byId.has(id));}
 function closeStepChoices(restoreFocus=false){
@@ -266,11 +267,11 @@ function navigateStep(direction){
   $('step-choices').hidden=false;button.setAttribute('aria-expanded','true');
   $('step-choices').querySelector('button')?.focus();
 }
-function selectNode(id){
+function selectNode(id,defaultOverview=DATA.nodes.length?'info':'help'){
   closeStepChoices();
   $('previous-step').disabled=true;$('next-step').disabled=true;
   if(!id||!byId.has(id)){
-    selected=null;activeTab='fields';overviewTab=DATA.nodes.length?'info':'help';fieldMode='all';changesMode='all';
+    selected=null;activeTab='fields';overviewTab=defaultOverview;fieldMode='all';changesMode='all';
     $('detail-search').value='';$('selected-icon').innerHTML='';
     $('selected-name').textContent='ステップを選択してください';$('selected-summary').textContent='';
     $('tab-settings').textContent='設定';
@@ -983,6 +984,6 @@ new ResizeObserver(()=>requestAnimationFrame(updateFormulaPreviews)).observe(doc
 function viewerCloseState(){return {dirty:CAN_EDIT&&([...formulaDrafts.values()].some(d=>d.dirty)||[...flowSessions.values()].some(s=>s.history.dirty)),busy:flowEditBusy||loadingFlow};}
 window.addEventListener('beforeunload',e=>{if(viewerCloseState().dirty){e.preventDefault();e.returnValue='';}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('formula-dialog').open){e.preventDefault();closeFormulaPopup();}});
-init(DATA);
+init(DATA,{restored:!!SERVER.restoredFlow});
 if(DATA.openingError)showFileError(DATA.openingError);
 refreshRecent();

@@ -8,6 +8,40 @@ function declaration(name) {
   const next = source.slice(start + 1).search(/^(?:async )?function /m);
   return source.slice(start, next < 0 ? undefined : start + 1 + next);
 }
+function checkOpeningSelection(){
+  const elements=new Map();
+  const element=id=>{
+    if(!elements.has(id))elements.set(id,{value:'',innerHTML:'',close(){}});
+    return elements.get(id);
+  };
+  const context=vm.createContext({
+    DATA:{nodes:[]},byId:new Map(),flowSessions:new Map(),SERVER:{token:'test'},
+    $:element,document:{title:''},FlowEditHistory:class {},
+    closeFormulaPopup(){},updateFlowEditButtons(){},configureFormulaEditor(){},closeStepChoices(){},
+    syncRecentPicker(){},renderGraph(){},highlightGraph(){},renderDetail(){},requestAnimationFrame(){},fit(){}
+  });
+  vm.runInContext(['init','selectNode'].map(declaration).join('\n'),context);
+  const flow=name=>({name,nodes:[{id:name,kind:'input',actions:[{}]}]});
+  const check=(model,options,tab)=>{
+    context.init(model,options);
+    assert.equal(context.selected,null,'Opening a flow must not automatically select its input');
+    assert.equal(context.overviewTab,tab);
+  };
+  check({name:'empty',nodes:[]},{},'help');
+  check(flow('first'),{},'help');
+  context.selected='first';
+  check(flow('replacement'),{},'info');
+  context.byId=new Map();
+  check(flow('restored'),{restored:true},'info');
+  context.byId=new Map();context.SERVER={};
+  check(flow('html'),{},'help');
+  context.selectNode(null);
+  assert.equal(context.overviewTab,'info','Deselecting a loaded step still opens flow information');
+  context.byId=new Map();context.SERVER={token:'test'};
+  check(flow('explicit-launch'),{},'help');
+  console.log('Opening selection: empty, first flow, replacement, restored flow and standalone HTML passed.');
+}
+checkOpeningSelection();
 async function check(route, outcome) {
   const elements = new Map();
   const element = id => {

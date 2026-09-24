@@ -723,6 +723,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from urllib.parse import unquote, quote
 
+    startup_source = Path(source).resolve() if source is not None else None
     recent = RecentFlows(history_path)
     recent_files = recent.list()
     if source is None and recent_files:
@@ -785,17 +786,19 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
         # Browser reopening also uses the latest history, without restarting Python.
         items = recent.list()
         model = empty_model()
+        restored_flow = False
         if items:
             path = Path(items[0]["path"])
             try:
                 model = analyze(path)
                 register_export(model, path)
+                restored_flow = startup_source is None or path.resolve() != startup_source
             except (ValueError, OSError, KeyError, TypeError, RuntimeError, zipfile.BadZipFile) as exc:
                 model = empty_model()
                 model["openingError"] = f"直近のフローを読み込めませんでした: {exc}"
         return render_html(model).replace(
             '<script id="server-config" type="application/json">{}</script>',
-            '<script id="server-config" type="application/json">' + json.dumps({"token": token}) + '</script>',
+            '<script id="server-config" type="application/json">' + json.dumps({"token": token, "restoredFlow": restored_flow}) + '</script>',
         ).encode("utf-8")
 
     class Handler(BaseHTTPRequestHandler):
