@@ -5,7 +5,7 @@ const node=(id,x,y,description='',height=1)=>({id,position:{x,y},description,dis
 const nodes=[node('a',1,0,'あ'.repeat(30),2),node('a-input',0,0),node('b',1,2,'い'.repeat(16),2),node('c',5,4,'う'.repeat(200),4),node('last',5,8)];
 const open=new Set(['a','b','c']);
 const initial=commentLayout(nodes,open,measure);
-assert.equal(initial.positions.get('last').y,70+8*117);
+assert.equal(initial.positions.get('last').y,70+8*134.55);
 const closed=commentLayout(nodes,new Set(),measure);
 assert.deepEqual(closed.positions,initial.positions,'Closing comments must preserve saved positions');
 assert.deepEqual(closed.bounds,initial.bounds,'Comment visibility must not change fit bounds');
@@ -15,10 +15,10 @@ assert.equal(one.positions.get('a').y,one.positions.get('a-input').y);
 assert.equal(initial.positions.get('last').x,closed.positions.get('last').x);
 assert.deepEqual(commentLayout(nodes,open,measure),initial,'Repeated toggles must not accumulate drift');
 const plain=[node('p',0,0),node('q',1,5)];
-assert.equal(commentLayout(plain,new Set(),measure).positions.get('q').y,70+5*117,'Keep unrelated saved gaps');
+assert.equal(commentLayout(plain,new Set(),measure).positions.get('q').y,70+5*134.55,'Keep unrelated saved gaps');
 const shared=[node('a',0,0,'あ'.repeat(30),2),node('b',1,0,'い'.repeat(30),2),node('c',1,2)];
-assert.equal(commentLayout(shared,new Set(['a','b']),measure).positions.get('c').y,70+2*117,'Shared row reserves space once');
-assert.equal(commentLayout(shared,new Set(['b']),measure).positions.get('c').y,70+2*117,'Other open comments keep their space');
+assert.equal(commentLayout(shared,new Set(['a','b']),measure).positions.get('c').y,70+2*134.55,'Shared row reserves space once');
+assert.equal(commentLayout(shared,new Set(['b']),measure).positions.get('c').y,70+2*134.55,'Other open comments keep their space');
 assert.deepEqual(wrapStepComment('one\r\n\n三😀',measure),['one','','三😀']);
 assert.equal(wrapStepComment('<script> & '+ 'あ'.repeat(200),measure).join(''),'<script> & '+'あ'.repeat(200));
 const bottom=commentLayout([nodes[2]],new Set(['b']),measure);
@@ -28,7 +28,7 @@ const largeFont=commentLayout(lengthy,open,s=>measure(s)*2,{top:140,lineHeight:3
 assert.deepEqual(largeFont.positions,initial.positions,'Long comments and larger fonts must not stretch the map');
 assert.deepEqual(largeFont.bounds,initial.bounds,'Invisible comment overflow must not shrink the fitted map');
 const negative=commentLayout([node('a',-2,-3),node('b',0,1)],new Set(),measure);
-assert.equal(negative.positions.get('b').y-negative.positions.get('a').y,4*117);
+assert.equal(negative.positions.get('b').y-negative.positions.get('a').y,4*134.55);
 assert.deepEqual(commentLayout([],new Set(),measure).bounds,{width:300,height:150});
 console.log('Comment layout: saved positions, stable fit bounds, negative coordinates and long comments passed.');
 const {graphTextArea,fitGraphText}=require('../web/comment-layout.js');
@@ -87,3 +87,33 @@ assert.equal(graphSegmentHitsRect({x:0,y:0},{x:100,y:100},{left:0,right:10,top:8
 const ellipsisMeasure=s=>s.includes('…')?80:mixedMeasure(s);
 assert.deepEqual(avoidGraphCommentOverlaps('x\ny',ellipsisMeasure,140,2,{...geometry,segments:[[{x:0,y:35},{x:50,y:35}],[{x:75,y:10},{x:75,y:25}]]}),[],'Recheck the ellipsis when shortening a line');
 console.log('Comment obstacles: straight and curved edges, steps, safe whitespace and ellipsis passed.');
+
+const {placeGraphComment}=require('../web/comment-layout.js');
+const zoomText='◆グループ化　車種名、年代、年月、データ元(STATUS)、性別、GRADE、販社コード、塗色コード、塗色名称 ◆カウント MITSUMORI_NO';
+let reproducedDisappearance=false;
+for(let tick=75;tick<=300;tick++){
+  const zoom=tick/100,icon=Math.max(1,Math.min(1.8,.9/zoom)),title=Math.max(13*icon,14/zoom);
+  const font=Math.max(13/zoom,Math.min(20,title*.924,Math.max(12.6,9.45/zoom)));
+  const y=32.255*icon+title*.8+Math.max(10,6/zoom)+4/zoom+font;
+  const x1=-170+56.715125,x2=-19.845*icon-7;
+  const shape={x:-70,y,fontSize:font,lineHeight:Math.ceil(font*1.25),padding:3/zoom,
+    segments:graphCurveSegments(x1,117,x2,0,Math.max(45,Math.abs(x2-x1)*.48),.5/zoom),rectangles:[]};
+  const measured=s=>Array.from(s).reduce((n,c)=>n+(c.charCodeAt(0)<128?.53:1)*font,0);
+  const original=avoidGraphCommentOverlaps(zoomText,measured,140,8,shape);
+  const placed=placeGraphComment(zoomText,measured,140,8,shape,Math.min(35,24/zoom),2/zoom);
+  if(!original.length)reproducedDisappearance=true;
+  assert.ok(placed.lines.length,'An incoming curve must not make this comment disappear as zoom increases');
+  assert.ok(Math.abs(placed.x-shape.x)<=Math.min(35,24/zoom),'Keep the comment close to its own step');
+  assert.deepEqual(placed.lines,avoidGraphCommentOverlaps(zoomText,measured,140,8,{...shape,x:placed.x}),'Moved text and ellipsis must remain clear of edges');
+  if(original.length)assert.deepEqual(placed,{x:shape.x,lines:original},'Do not move already visible comments');
+}
+assert.ok(reproducedDisappearance,'The regression fixture must reproduce the original bug');
+const blocked={...geometry,segments:[[{x:0,y:0},{x:0,y:500}]]};
+const rescued=placeGraphComment(collisionText,mixedMeasure,140,20,blocked,24,2);
+assert.ok(rescued.x>0&&rescued.lines.length>0,'Move right of a curve along the left edge');
+assert.deepEqual(placeGraphComment(collisionText,mixedMeasure,140,20,{...blocked,
+  rectangles:[{left:-100,right:200,top:0,bottom:500}]},24,2).lines,[],'Do not move into a neighbouring step or reserved comment');
+assert.deepEqual(placeGraphComment(collisionText,mixedMeasure,95,20,blocked,24,2).lines,[],'Moving must not bypass the eight-character minimum width');
+assert.deepEqual(placeGraphComment(collisionText,mixedMeasure,140,0,blocked,24,2).lines,[],'Moving must not bypass available height');
+assert.equal(placeGraphComment(collisionText,mixedMeasure,140,20,geometry,24,2).lines.length,20,'No new fixed line limit');
+console.log('Comment placement: zoom regression, bounded offsets, neighbour protection and existing visibility rules passed.');

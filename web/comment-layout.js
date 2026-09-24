@@ -16,7 +16,7 @@ function commentLayout(nodes,expanded,measure,metrics={top:65,lineHeight:15}){
   const minX=Math.min(0,...nodes.map(n=>n.position.x));
   const minY=Math.min(0,...nodes.map(n=>n.position.y));
   for(const n of nodes){
-    positions.set(n.id,{x:95+(n.position.x-minX)*195.5,y:70+(n.position.y-minY)*117});
+    positions.set(n.id,{x:95+(n.position.x-minX)*195.5,y:70+(n.position.y-minY)*134.55});
     if(n.description?.trim()&&expanded.has(n.id)){
       const lines=wrapStepComment(n.description,measure);
       comments.set(n.id,{lines,bottom:metrics.top+(lines.length-1)*metrics.lineHeight});
@@ -93,4 +93,19 @@ function avoidGraphCommentOverlaps(text,measure,width,maxLines,geometry){
   }
   return lines;
 }
-if(typeof module!=='undefined')module.exports={wrapStepComment,commentLayout,graphTextArea,fitGraphText,fitGraphComment,graphCurveSegments,graphSegmentHitsRect,avoidGraphCommentOverlaps};
+function placeGraphComment(text,measure,width,maxLines,geometry,maxShift,shiftStep){
+  const original=avoidGraphCommentOverlaps(text,measure,width,maxLines,geometry);
+  if(original.length||!fitGraphComment(text,measure,width,maxLines).length)return {x:geometry.x,lines:original};
+  // Rescue a blocked first line locally. Keep the width, baseline and font unchanged.
+  // Prefer the nearest safe position; the same collision checks still apply.
+  for(let distance=Math.min(shiftStep,maxShift);distance>0;distance=Math.min(distance+shiftStep,maxShift)){
+    for(const direction of [1,-1]){
+      const x=geometry.x+direction*distance;
+      const lines=avoidGraphCommentOverlaps(text,measure,width,maxLines,{...geometry,x});
+      if(lines.length)return {x,lines};
+    }
+    if(distance===maxShift)break;
+  }
+  return {x:geometry.x,lines:[]};
+}
+if(typeof module!=='undefined')module.exports={wrapStepComment,commentLayout,graphTextArea,fitGraphText,fitGraphComment,graphCurveSegments,graphSegmentHitsRect,avoidGraphCommentOverlaps,placeGraphComment};

@@ -172,6 +172,12 @@ function applyTransform(){
   });
   // Allow ten extra lines below the map without changing layout or fit bounds.
   commentMeasure.font=`${sizes.comment}px "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif`;
+  const commentPlacements=[],commentRects=new Map();
+  const measureComment=text=>commentMeasure.measureText(text).width;
+  const reserveComment=(id,x,lines,geometry)=>commentRects.set(id,lines.map((line,i)=>({
+    left:x,right:x+measureComment(line),top:geometry.y+i*geometry.lineHeight-geometry.fontSize,
+    bottom:geometry.y+i*geometry.lineHeight+geometry.fontSize*.25
+  })));
   document.querySelectorAll('.step-comment').forEach(label=>{
     const node=byId.get(label.id.slice('comment-'.length));
     if(!node||!expandedComments.has(node.id))return;
@@ -182,11 +188,23 @@ function applyTransform(){
     const area=graphTextArea(node.id,positions,scale,bounds.height-30+10*lineHeight);
     const limit=Math.max(0,Math.floor((area.bottom-commentY)/lineHeight)+1);
     const p=positions.get(node.id);
-    const lines=avoidGraphCommentOverlaps(node.description,text=>commentMeasure.measureText(text).width,area.width,limit,{
+    const geometry={
       x:p.x-area.width/2,y:p.y+commentY,fontSize:sizes.comment,lineHeight,padding:3/scale,
       segments:edgeSegments,rectangles:commentObstacles.filter(r=>r.id!==node.id)
-    });
-    label.setAttribute('x',-area.width/2);
+    };
+    const lines=avoidGraphCommentOverlaps(node.description,measureComment,area.width,limit,geometry);
+    reserveComment(node.id,geometry.x,lines,geometry);
+    commentPlacements.push({label,node,p,area,limit,geometry,lines});
+  });
+  // Reserve existing captions before moving any hidden one into nearby free space.
+  for(const {label,node,p,area,limit,geometry,lines:original} of commentPlacements){
+    const placed=original.length?{x:geometry.x,lines:original}:placeGraphComment(
+      node.description,measureComment,area.width,limit,{
+        ...geometry,rectangles:[...geometry.rectangles,...[...commentRects].filter(([id])=>id!==node.id).flatMap(([,rects])=>rects)]
+      },Math.min(area.width*.25,24/scale),2/scale);
+    const {lines}=placed,x=placed.x-p.x,lineHeight=geometry.lineHeight;
+    reserveComment(node.id,placed.x,lines,geometry);
+    label.setAttribute('x',x);
     const truncated=lines.join('')!==node.description.replace(/\r?\n/g,'');
     if(truncated){
       const toggle=label.parentElement.querySelector('.comment-toggle');
@@ -195,8 +213,8 @@ function applyTransform(){
         tooltip.textContent=node.description;toggle.insertBefore(tooltip,toggle.firstChild);
       }
     }
-    label.innerHTML=(truncated?`<title>${esc(node.description)}</title>`:'')+lines.map((line,i)=>`<tspan x="${-area.width/2}" dy="${i?lineHeight:0}">${esc(line)||'&#8203;'}</tspan>`).join('');
-  });
+    label.innerHTML=(truncated?`<title>${esc(node.description)}</title>`:'')+lines.map((line,i)=>`<tspan x="${x}" dy="${i?lineHeight:0}">${esc(line)||'&#8203;'}</tspan>`).join('');
+  }
 }
 
 function fit(){
