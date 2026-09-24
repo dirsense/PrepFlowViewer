@@ -270,7 +270,7 @@ function selectNode(id){
   closeStepChoices();
   $('previous-step').disabled=true;$('next-step').disabled=true;
   if(!id||!byId.has(id)){
-    selected=null;activeTab='fields';overviewTab='info';fieldMode='all';changesMode='all';
+    selected=null;activeTab='fields';overviewTab=DATA.nodes.length?'info':'help';fieldMode='all';changesMode='all';
     $('detail-search').value='';$('selected-icon').innerHTML='';
     $('selected-name').textContent='ステップを選択してください';$('selected-summary').textContent='';
     $('tab-settings').textContent='設定';
