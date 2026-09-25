@@ -341,18 +341,26 @@ function renderFormulaPopup(){
   $('formula-full').scrollTop=0;updateFormulaEditButtons();sizeFormulaPopup();
 }
 function openFormulaPopup(source,origin){
+  if(formulaPopup.key)formulaDrafts.delete(formulaPopup.key);
+  formulaComposing=false;
   if(!origin){
     const candidates=DATA.nodes.flatMap(n=>n.actions.flatMap(a=>a.expressions.filter(e=>e.expression===source).map(e=>({stepId:n.id,actionId:a.id,field:e.field}))));
     if(candidates.length===1)origin=candidates[0];
   }
   const key=JSON.stringify([DATA.exportKey||DATA.name,origin||source]);
-  let history=formulaDrafts.get(key);
-  if(!history||(!history.dirty&&history.baseline!==source)){history=new FormulaEditHistory(source);formulaDrafts.set(key,history);}
+  const history=new FormulaEditHistory(source);formulaDrafts.set(key,history);
   formulaPopup={original:source,formatted:formatFormula(source),mode:'original',history,origin,key,saving:false};
   $('formula-save-error').hidden=true;configureFormulaEditor();
   renderFormulaPopup();if(!$('formula-dialog').open)$('formula-dialog').show();$('formula-backdrop').hidden=false;sizeFormulaPopup();$('formula-original-tab').focus();
 }
-function closeFormulaPopup(){if(flowEditBusy)return;$('formula-dialog').close();$('formula-backdrop').hidden=true;}
+function closeFormulaPopup(){
+  if(flowEditBusy)return;
+  // Drafts belong to the open editor only. Confirmed edits live in the flow history.
+  if(formulaPopup.key)formulaDrafts.delete(formulaPopup.key);
+  formulaPopup={original:'',formatted:'',mode:'original'};formulaComposing=false;
+  $('formula-dialog').close();$('formula-backdrop').hidden=true;
+  $('formula-full').textContent='';$('formula-save-error').hidden=true;
+}
 function configureFormulaEditor(){
   const editor=$('formula-full');
   editor.contentEditable=CAN_EDIT&&!flowEditBusy?'plaintext-only':'false';
@@ -385,7 +393,7 @@ function restoreFormulaSelection(selection){
   const current=window.getSelection();current.removeAllRanges();current.addRange(range);
 }
 function recordFormulaInput(){
-  if(!CAN_EDIT||formulaComposing||formulaPopup.saving)return;
+  if(!CAN_EDIT||!$('formula-dialog').open||!formulaPopup.history||formulaComposing||formulaPopup.saving)return;
   const editor=$('formula-full'),text=editor.innerText,selection=formulaSelection(),scroll=editor.scrollTop;
   if(text===formulaPopup[formulaPopup.mode])return;
   const baselineView=formulaPopup.mode==='formatted'?formatFormula(formulaPopup.history.baseline):formulaPopup.history.baseline;
@@ -928,8 +936,8 @@ if(CAN_EDIT){
   $('publish-button')?.remove();$('publish-dialog')?.remove();
   $('flow-edit-tools')?.remove();$('save-formula')?.remove();
 }
-$('formula-dialog').addEventListener('cancel',e=>{if(formulaPopup.saving)e.preventDefault();});
-$('formula-dialog').addEventListener('click',e=>{if(e.target!==e.currentTarget||formulaPopup.saving)return;const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.currentTarget.close();});
+$('formula-dialog').addEventListener('cancel',e=>{e.preventDefault();closeFormulaPopup();});
+$('formula-dialog').addEventListener('click',e=>{if(e.target!==e.currentTarget||formulaPopup.saving)return;const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeFormulaPopup();});
 if(CAN_EDIT){
 $('formula-full').addEventListener('compositionstart',()=>formulaComposing=true);
 $('formula-full').addEventListener('compositionend',()=>{formulaComposing=false;recordFormulaInput();});
