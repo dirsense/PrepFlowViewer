@@ -239,7 +239,6 @@ function init(model,{restored=false}={}){
   configureFormulaEditor();
   commentFont=12.6;
   expandedComments=new Set(DATA.nodes.filter(n=>n.description?.trim()&&(!n.display?.size||n.display.size.height>1)).map(n=>n.id));
-  $('info-dialog').close();
   closeStepChoices();
   selected=null;
   activeTab='fields';fieldMode='all';changesMode='all';$('detail-search').value='';
@@ -409,13 +408,16 @@ function moveFormulaHistory(direction){
 function updateFlowEditButtons(){
   if(!CAN_EDIT)return;
   const history=flowSession?.history;
-  $('flow-edit-tools').hidden=!history?.started;
+  $('flow-edit-tools').hidden=false;
   $('undo-flow').disabled=flowEditBusy||!history?.canUndo;
   $('redo-flow').disabled=flowEditBusy||!history?.canRedo;
   $('save-flow').disabled=flowEditBusy||!history?.dirty;
+  $('export-button').disabled=flowEditBusy||loadingFlow||!DATA.nodes.length;
+  $('batch-open').disabled=flowEditBusy||loadingFlow;
   $('recent-toggle').disabled=flowEditBusy||loadingFlow;
   $('open-button').disabled=flowEditBusy;
   if($('publish-button'))$('publish-button').disabled=flowEditBusy||loadingFlow;
+  if($('run-button'))$('run-button').disabled=flowEditBusy||loadingFlow||!DATA.nodes.some(n=>n.kind==='output');
 }
 function setFlowEditBusy(busy){
   flowEditBusy=busy;configureFormulaEditor();
@@ -727,14 +729,14 @@ function connectionsHtml(){
   return `<p class="overview-note">接続元を開くと、使用している入力ステップを確認できます。</p>${groups.map(group=>`<details class="connection-group"><summary><span class="connection-source"><strong>${esc(group.title)}</strong><small>${esc(group.info.label)} · 入力ステップ ${group.steps} 件</small></span></summary><div class="connection-steps">${group.entries.map(entry=>entry.nodes.length?entry.nodes.map(node=>`<section class="connection-step"><h3>${esc(node.name)}</h3>${keyValues(connectionFields(connectionInfo(entry.connection,node),node))}<button class="button" data-connection-step="${esc(node.id)}">ステップの接続設定を表示</button></section>`).join(''):`<section class="connection-step"><h3>${esc(entry.info.name||'接続定義')}</h3>${keyValues(connectionFields(entry.info))}<p class="overview-note">使用している入力ステップはありません。</p></section>`).join('')}</div></details>`).join('')}`;
 }
 function overviewHelpHtml(){
-  return `<div class="overview-help"><h3>フローを見る</h3><ul><li>ステップをクリックすると詳細を表示します。同じステップをもう一度押すか、マップの空白を押すとフロー情報へ戻ります。</li><li>ホイールで拡大・縮小、ドラッグで移動できます。</li><li>空白のダブルクリック、または上部の全体表示アイコンで、フロー全体を表示します。</li><li>全体表示中は右ペインの幅に合わせて自動調整します。手動で拡大・移動した後は倍率と位置を維持します。</li></ul><h3>処理・計算式を確認する</h3><ul><li>「フィールド一覧」「変更内容」「設定」を切り替えて確認します。検索でフィールドや加工を絞り込めます。</li><li>計算式は拡大表示で「原文」と「自動整形」を切り替えられます。コピーや対応する括弧の強調も使えます。</li></ul>${CAN_EDIT?'<h3>編集・保存・共有する</h3><ul><li>計算式を編集したら「変更を確定」。この段階ではViewer内だけに反映します。</li><li>上部のUndo / Redoで確定した変更を戻せます。「フローを保存」でTFL / TFLXへ保存します。</li><li>「HTMLを保存」は、閲覧専用の共有ファイルを書き出します。</li><li>上部のパブリッシュアイコンからTableau Serverへ公開できます。PC上のフロー保存とは別の操作です。</li></ul>':'<h3>このHTMLについて</h3><p>閲覧専用です。計算式の編集・フローの保存・ServerへのパブリッシュはViewer本体で行います。</p>'}<p class="overview-note">データソースには接続せず、フローに保存された定義を表示しています。</p></div>`;
+  return `<div class="overview-help"><h3>フローを見る</h3><ul><li>ステップをクリックすると詳細を表示します。同じステップをもう一度押すか、マップの空白を押すとフロー情報へ戻ります。</li><li>ホイールで拡大・縮小、ドラッグで移動できます。</li><li>空白のダブルクリック、または上部の全体表示アイコンで、フロー全体を表示します。</li><li>全体表示中は右ペインの幅に合わせて自動調整します。手動で拡大・移動した後は倍率と位置を維持します。</li></ul><h3>処理・計算式を確認する</h3><ul><li>「フィールド一覧」「変更内容」「設定」を切り替えて確認します。検索でフィールドや加工を絞り込めます。</li><li>計算式は拡大表示で「原文」と「自動整形」を切り替えられます。コピーや対応する括弧の強調も使えます。</li></ul>${CAN_EDIT?'<h3>編集・保存・共有する</h3><ul><li>計算式を編集したら「変更を確定」。この段階ではViewer内だけに反映します。</li><li>上部のUndo / Redoで確定した変更を戻せます。ダウンロードアイコンの「フローを保存」でTFL / TFLXへ保存します。</li><li>ダウンロードアイコンの「HTMLを保存」は、閲覧専用の共有ファイルを書き出します。「HTMLを一括保存」で複数のフローをまとめて変換できます。</li><li>上部のパブリッシュアイコンからTableau Serverへ公開できます。PC上のフロー保存とは別の操作です。</li><li>三角の実行アイコンから、出力名・保存先を確認して個別実行・すべて実行できます。実行にはTableau Prep Builderが必要で、出力先の実データを更新します。進捗は実行ログで確認できます。</li></ul>':'<h3>このHTMLについて</h3><p>閲覧専用です。計算式の編集・フローの保存・ServerへのパブリッシュはViewer本体で行います。</p>'}<p class="overview-note">データソースには接続せず、フローに保存された定義を表示しています。</p></div>`;
 }
 function renderFlowInfo(container){
   const source=DATA.sourcePath||'',folder=source.slice(0,Math.max(source.lastIndexOf('/'),source.lastIndexOf('\\'))+1);
   container.innerHTML=`<div class="meta-stats">${[['ステップ',DATA.stats.steps],['加工',DATA.stats.actions],['計算式',DATA.stats.calculations]].map(([label,value])=>`<div class="meta-stat"><strong>${value||0}</strong><span>${label}</span></div>`).join('')}</div>${keyValues({'ファイル':DATA.name,'保存場所':CAN_EDIT?(folder||'未確定（フローを保存すると表示されます）'):null,'ファイルサイズ':formatFileSize(DATA.fileSizeBytes),'定義の解析時間':DATA.stats.parseMs+' ms','保存座標':DATA.stats.savedPositions+' ステップ','フロー形式バージョン':DATA.formatVersion,'解析':'Python / 接続・実データの読込なし'})}<p>flow の処理定義と displaySettings の配置・色を表示しています。フィールド一覧は静的に復元したもので、実行結果ではありません。推定箇所や未対応の加工は各ステップに注記します。</p>${DATA.warnings.map(w=>`<p class="warning">${esc(w)}</p>`).join('')}<details class="raw-details"><summary>パッケージ内のファイル一覧（データは未読込）</summary><pre class="raw-pre">${esc(DATA.entries.map(e=>`${e.name}  (${e.bytes.toLocaleString()} bytes)`).join('\n'))}</pre></details><details class="raw-details"><summary>パラメーター</summary><pre class="raw-pre">${esc(json(DATA.parameters))}</pre></details><details class="raw-details"><summary>maestroMetadata</summary><pre class="raw-pre">${esc(json(DATA.metadata))}</pre></details>`;
   if(folder&&SERVER.token){
     const cell=container.querySelector('.kv dd:nth-of-type(2)'),button=document.createElement('button');
-    cell.classList.add('flow-location');button.className='button folder-open';button.id=container.id==='info-content'?'open-source-folder':'open-source-folder-panel';button.textContent='保存場所を開く';
+    cell.classList.add('flow-location');button.className='button folder-open';button.id='open-source-folder-panel';button.textContent='保存場所を開く';
     button.onclick=async()=>{
       button.disabled=true;
       cell.querySelector('.folder-error')?.remove();
@@ -747,11 +749,6 @@ function renderFlowInfo(container){
     cell.append(button);
   }
 }
-function showInfo(){
-  renderFlowInfo($('info-content'));
-  $('info-dialog').showModal();
-}
-
 async function copyText(text){
   try{await navigator.clipboard.writeText(text);toast('コピーしました');}
   catch{const t=document.createElement('textarea');t.value=text;document.body.append(t);t.select();const ok=document.execCommand('copy');t.remove();toast(ok?'コピーしました':'コピーできませんでした。テキストを選択してコピーしてください。');}
@@ -810,6 +807,7 @@ async function loadFile(file){
 }
 function beginNativeFlowDrop(){
   dropDepth=0;$('drop-overlay').hidden=true;
+  if($('batch-dialog')?.open)return false;
   return CAN_EDIT&&beginFlowLoad();
 }
 function finishNativeFlowDrop(model,error){
@@ -874,18 +872,16 @@ async function executePublish(publish){
   }catch(error){publishLog(error.message,'error');}
   finally{setPublishBusy(false);}
 }
-function exportHtml(){
-  if(!CAN_EDIT)return;
-  if(SERVER.token && DATA.exportKey){
-    const a=document.createElement('a');a.href='/export/'+encodeURIComponent(DATA.exportKey);a.download=(DATA.name||'flow').replace(/\.(tflx|tfl)$/i,'')+'.html';document.body.append(a);a.click();a.remove();toast('HTMLの保存を開始しました。保存したファイルは単独で開けます。');return;
-  }
-  const root=document.documentElement.cloneNode(true);
-  root.querySelector('#server-config').textContent='{}';
-  root.querySelector('#flow-data').textContent=JSON.stringify(DATA).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
-  root.querySelector('#toast').hidden=true;root.querySelector('#info-dialog').removeAttribute('open');root.querySelector('#formula-dialog').removeAttribute('open');
-  root.querySelector('#drop-overlay').hidden=true;root.querySelector('#busy-overlay').hidden=true;root.querySelector('#formula-backdrop').hidden=true;
-  const blob=new Blob(['<!DOCTYPE html>\n'+root.outerHTML],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=(DATA.name||'flow').replace(/\.(tflx|tfl)$/i,'')+'.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);toast('HTMLの保存を開始しました。保存したファイルは単独で開けます。');
+async function exportHtml(){
+  if(!CAN_EDIT||flowEditBusy||loadingFlow||!DATA.exportKey)return;
+  setFlowEditBusy(true);$('export-button').textContent='保存先を選択中…';
+  try{
+    const response=await fetch('/api/save-html',{method:'POST',headers:{'Content-Type':'application/json','X-Viewer-Token':SERVER.token},body:JSON.stringify({exportKey:DATA.exportKey})});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'HTMLを保存できませんでした。');
+    if(!result.cancelled)toast(`${result.name} を保存しました`);
+  }catch(error){toast(error.message);}
+  finally{$('export-button').textContent='HTMLを保存';setFlowEditBusy(false);}
 }
 
 
@@ -918,14 +914,15 @@ $('flow-svg').addEventListener('keydown',e=>{if(!['Enter',' '].includes(e.key))r
 document.querySelector('.detail-tabs:not(.overview-tabs)').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-tab]')],i=tabs.indexOf(document.activeElement),next=e.key==='Home'?0:e.key==='End'?2:(i+(e.key==='ArrowRight'?1:2))%3;activeTab=tabs[next].dataset.tab;tabs[next].focus();renderDetail();});
 $('detail-search').addEventListener('input',renderDetail);
 $('overview-tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...document.querySelectorAll('[data-overview-tab]')],i=tabs.indexOf(document.activeElement),next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length;overviewTab=tabs[next].dataset.overviewTab;renderDetail();tabs[next].focus();});
-$('fit-button').onclick=fit;$('about-button').onclick=showInfo;$('close-info').onclick=()=>$('info-dialog').close();
+$('fit-button').onclick=fit;
 $('close-formula').onclick=closeFormulaPopup;
 $('formula-backdrop').onclick=closeFormulaPopup;
 $('copy-formula').onclick=()=>copyText($('formula-full').innerText);
 $('formula-full').onpointerover=e=>hoverFormulaBrackets(e.target.closest?.('[data-bracket]'));
 $('formula-full').onpointerout=e=>hoverFormulaBrackets(e.relatedTarget?.closest?.('[data-bracket]'));
 if(CAN_EDIT){
-  $('export-button').hidden=false;
+  setupDownloadMenu();
+  setupFlowRun();
   $('publish-button').hidden=false;$('publish-button').onclick=openPublish;
   $('close-publish').onclick=()=>{if(!publishBusy){$('publish-dialog').close();$('publish-token-value').value='';}};
   $('publish-dialog').addEventListener('cancel',e=>{if(publishBusy)e.preventDefault();else $('publish-token-value').value='';});
@@ -934,6 +931,7 @@ if(CAN_EDIT){
   $('undo-flow').onclick=()=>moveFlowHistory('undo');$('redo-flow').onclick=()=>moveFlowHistory('redo');$('save-formula').onclick=confirmFormula;$('save-flow').onclick=saveFlow;
 }else{
   $('publish-button')?.remove();$('publish-dialog')?.remove();
+  $('run-dialog')?.remove();$('run-progress-dialog')?.remove();
   $('flow-edit-tools')?.remove();$('save-formula')?.remove();
 }
 $('formula-dialog').addEventListener('cancel',e=>{e.preventDefault();closeFormulaPopup();});
@@ -989,8 +987,8 @@ document.addEventListener('drop',handleFileDrop);
 window.addEventListener('resize',()=>{if(autoFit)fit();});
 window.addEventListener('resize',sizeFormulaPopup);
 new ResizeObserver(()=>requestAnimationFrame(updateFormulaPreviews)).observe(document.querySelector('.detail-section'));
-function viewerCloseState(){return {dirty:CAN_EDIT&&([...formulaDrafts.values()].some(d=>d.dirty)||[...flowSessions.values()].some(s=>s.history.dirty)),busy:flowEditBusy||loadingFlow};}
-window.addEventListener('beforeunload',e=>{if(viewerCloseState().dirty){e.preventDefault();e.returnValue='';}});
+function viewerCloseState(){return {dirty:CAN_EDIT&&([...formulaDrafts.values()].some(d=>d.dirty)||[...flowSessions.values()].some(s=>s.history.dirty)),busy:flowEditBusy||loadingFlow||(typeof batchIsBusy==='function'&&batchIsBusy())};}
+window.addEventListener('beforeunload',e=>{if(viewerCloseState().dirty||viewerCloseState().busy){e.preventDefault();e.returnValue='';}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('formula-dialog').open){e.preventDefault();closeFormulaPopup();}});
 init(DATA,{restored:!!SERVER.restoredFlow});
 if(DATA.openingError)showFileError(DATA.openingError);

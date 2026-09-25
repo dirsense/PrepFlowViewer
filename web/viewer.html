@@ -17,18 +17,17 @@
       <div id="recent-menu" role="menu" aria-label="最近開いたフロー" hidden></div>
     </div>
     <div class="flow-view-tools">
-      <button class="header-button" id="about-button" title="フロー情報" aria-label="フロー情報">ⓘ</button>
-      <button class="header-button" id="fit-button" title="フロー全体を表示" aria-label="フロー全体を表示">⛶</button>
+      <button class="header-button" id="fit-button" title="フロー全体を表示" aria-label="フロー全体を表示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3M4 15v3a2 2 0 0 0 2 2h3m11-5v3a2 2 0 0 1-2 2h-3"/></svg></button>
       <button class="header-button" id="publish-button" title="Tableau Serverへパブリッシュ" aria-label="Tableau Serverへパブリッシュ" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg></button>
+      <button class="header-button" id="download-button" title="ダウンロード・保存" aria-label="ダウンロード・保存" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg></button>
+      <button class="header-button" id="run-button" title="フローを実行" aria-label="フローを実行" aria-haspopup="dialog" disabled hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 15 9-15 9Z"/></svg></button>
+      <div id="flow-edit-tools" hidden>
+        <button class="header-button" id="undo-flow" title="元に戻す" aria-label="元に戻す" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-5 5 5 5M3 8h11.5a6.5 6.5 0 0 1 0 13H12"/></svg></button>
+        <button class="header-button" id="redo-flow" title="やり直す" aria-label="やり直す" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5-5 5M21 8H9.5a6.5 6.5 0 0 0 0 13H12"/></svg></button>
+      </div>
     </div>
   </div>
   <div class="header-actions">
-  <div id="flow-edit-tools" hidden>
-    <button class="formula-tool" id="undo-flow" title="元に戻す" aria-label="元に戻す"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4 3 8l5 4M3 8h8a5 5 0 0 1 0 10"/></svg></button>
-    <button class="formula-tool" id="redo-flow" title="やり直す" aria-label="やり直す"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 4 5 4-5 4M17 8H9a5 5 0 0 0 0 10"/></svg></button>
-    <button class="button primary" id="save-flow">フローを保存</button>
-  </div>
-    <button class="button" id="export-button" hidden>↓ <span>HTMLを保存</span></button>
     <button class="button primary" id="open-button">＋ <span>フローを開く</span></button>
     <input type="file" id="file-input" accept=".tflx,.tfl" hidden>
   </div>
@@ -61,7 +60,31 @@
 <div id="drop-overlay" hidden><div><span>↥</span><h2>フローをここにドロップ</h2><p>.tflx / .tfl</p></div></div>
 <div id="busy-overlay" hidden><div class="spinner"></div><h2>フローの定義を読み込んでいます</h2><p>入力データの読み込みや接続は行いません</p></div>
 <div id="toast" role="status" hidden></div>
-<dialog id="info-dialog"><div class="dialog-heading"><h2>フロー情報</h2><button class="icon-button" id="close-info" aria-label="閉じる">×</button></div><div id="info-content"></div></dialog>
+<dialog id="download-dialog" aria-labelledby="download-title">
+  <div class="dialog-heading"><h2 id="download-title">ダウンロード・保存</h2><button class="icon-button" id="close-download" aria-label="保存メニューを閉じる">×</button></div>
+  <div class="download-options">
+    <button class="button" id="export-button">HTMLを保存</button>
+    <button class="button" id="batch-open">HTMLを一括保存</button>
+    <button class="button" id="save-flow" disabled>フローを保存</button>
+  </div>
+  <p class="download-note">フローの保存は、編集内容を確定すると使えます。</p>
+</dialog>
+<dialog id="batch-dialog" aria-labelledby="batch-title">
+  <div class="dialog-heading"><h2 id="batch-title">HTMLを一括保存</h2><button class="icon-button" id="close-batch" aria-label="一括保存を閉じる">×</button></div>
+  <p class="batch-intro">複数のフローを、単独で開ける閲覧用HTMLに変換します。</p>
+  <div id="batch-drop" tabindex="0" role="button" aria-label="フローファイルを追加">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg>
+    <strong>フローファイルをここにドロップ</strong><span>.tfl / .tflx・複数ファイル対応</span>
+  </div>
+  <div class="batch-input-actions"><button class="button" id="batch-files">ファイル指定</button><button class="button" id="batch-folder">フォルダー指定</button><label><input type="checkbox" id="batch-recursive" checked> サブフォルダーも含める</label></div>
+  <div class="batch-list-heading"><strong id="batch-count">対象ファイル 0件</strong><button class="batch-clear" id="batch-clear" disabled>リストをクリア</button></div>
+  <ul id="batch-list" aria-label="変換するフロー"><li class="batch-empty">ファイルを追加してください。</li></ul>
+  <label class="batch-output-label" for="batch-output">保存先フォルダー</label>
+  <div class="batch-output"><input id="batch-output" placeholder="保存先を選択してください" readonly><button class="button" id="batch-destination">フォルダー指定</button></div>
+  <p class="batch-note">同名のHTMLは上書きします。変換には選択したファイルの保存済み内容を使います。</p>
+  <p id="batch-error" role="alert" hidden></p>
+  <div class="batch-footer"><span id="batch-progress" role="status" aria-live="polite">対象ファイルと保存先を選んでください。</span><button class="button" id="batch-stop" hidden>このファイルまでで停止</button><button class="button primary" id="batch-start" disabled>HTMLに変換して保存</button></div>
+</dialog>
 <dialog id="file-error-dialog"><div class="dialog-heading"><h2>フローを開けませんでした</h2><button class="icon-button" id="close-file-error" aria-label="エラーを閉じる">×</button></div><p id="file-error-message"></p><button class="button primary" id="file-error-ok">OK</button></dialog>
 <div id="formula-backdrop" hidden></div>
 <dialog id="formula-dialog" aria-labelledby="formula-dialog-title">
@@ -77,6 +100,29 @@
   </div>
   <p id="formula-save-error" role="alert" hidden></p>
   <pre id="formula-full" class="code" role="region" aria-label="計算式" contenteditable="false" spellcheck="false" tabindex="0"></pre>
+</dialog>
+<dialog id="run-dialog" aria-labelledby="run-title">
+  <div class="dialog-heading"><h2 id="run-title">フローを実行</h2><button class="icon-button" id="close-run" aria-label="実行画面を閉じる">×</button></div>
+  <p id="run-flow-name"></p>
+  <div class="run-settings">
+    <label for="run-cli">Tableau Prep Builder</label><div><input id="run-cli" readonly placeholder="見つかりません。実行ファイルを選択してください"><button class="button" id="run-pick-cli">変更</button></div>
+    <label for="run-credentials">認証ファイル（任意）</label><div><input id="run-credentials" readonly placeholder="データベースやサーバー接続に必要な場合のみ"><button class="button" id="run-pick-credentials">選択</button><button class="button" id="run-clear-credentials" aria-label="認証ファイルの選択を解除">解除</button></div>
+  </div>
+  <div class="run-list-heading"><h3 id="run-output-count">出力ステップ</h3><button class="button primary" id="run-all" disabled>すべて実行</button></div>
+  <ul id="run-outputs" aria-label="実行する出力ステップ"></ul>
+  <p class="run-note">確定済みの編集を含めて実行します。元フローは変更しません。出力先のデータはフローに設定された書き込み方法で更新します。</p>
+  <p id="run-error" role="alert" hidden></p>
+  <button class="button" id="run-last-result" hidden>前回の実行結果</button>
+</dialog>
+<dialog id="run-progress-dialog" aria-labelledby="run-progress-title">
+  <div class="dialog-heading"><h2 id="run-progress-title">フローの実行状況</h2><button class="icon-button" id="close-run-progress" aria-label="実行結果を閉じる">×</button></div>
+  <p id="run-progress-name"></p>
+  <div class="run-progress-summary"><div><span id="run-spinner" aria-hidden="true"></span><strong id="run-status" role="status" aria-live="polite">実行中…</strong></div><div class="run-duration"><span id="run-time-label">経過時間</span><strong id="run-time">00:00:00</strong></div></div>
+  <p id="run-progress-targets"></p>
+  <p id="run-progress-error" role="alert" hidden></p>
+  <h3>実行ログ</h3>
+  <div id="run-log" role="log" aria-label="フロー実行ログ" tabindex="0"></div>
+  <div class="run-progress-footer"><p id="run-cancel-note">キャンセルは実行プロセスを停止します。書き込み済みのデータは元に戻りません。</p><button class="button" id="run-cancel">キャンセル</button><button class="button primary" id="run-progress-done" hidden>閉じる</button></div>
 </dialog>
 <dialog id="publish-dialog" aria-labelledby="publish-title">
   <div class="dialog-heading"><h2 id="publish-title">Tableau Serverへパブリッシュ</h2><button class="icon-button" id="close-publish" aria-label="閉じる">×</button></div>

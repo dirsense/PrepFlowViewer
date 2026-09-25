@@ -1,80 +1,71 @@
-import ctypes
+import ctypes as c
 import os
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from native_dialogs import choose_file
+from native_dialogs import choose_file, choose_directory
+from windows_file_dialog import FileDialog, call, choose
 
 
-@unittest.skipUnless(os.name == 'nt', 'Windows native dialogs')
+@unittest.skipUnless(os.name == 'nt', 'Windows Common Item Dialog')
 class NativeDialogTests(unittest.TestCase):
-    def library(self, result=False, error=0):
-        api = Mock()
-        api.GetSaveFileNameW = Mock(return_value=result)
-        api.GetOpenFileNameW = Mock(return_value=result)
-        api.CommDlgExtendedError = Mock(return_value=error)
-        api.GetForegroundWindow = Mock(return_value=9876)
-        return api
+    def test_real_modern_dialog_options_and_unicode_names(self):
+        for save, multiple, folder in [(False, False, False), (False, True, False), (True, False, False), (False, False, True)]:
+            with self.subTest(save=save, multiple=multiple, folder=folder):
+                dialog = FileDialog(save)
+                try:
+                    dialog.configure(title='選択', directory=Path.cwd(), filename='日本語.html' if save else '',
+                                     save=save, multiple=multiple, folder=folder,
+                                     filetypes=[('HTML ファイル', '*.html')] if save else None)
+                    flags = c.c_uint32()
+                    self.assertEqual(call(dialog.pointer, 10, [c.POINTER(c.c_uint32)], [c.byref(flags)]), 0)
+                    self.assertTrue(flags.value & 0x40)  # Filesystem paths, not virtual Shell items.
+                    self.assertTrue(flags.value & 0x800)
+                    self.assertEqual(bool(flags.value & 0x200), multiple)
+                    self.assertEqual(bool(flags.value & 0x20), folder)
+                    if save:
+                        self.assertTrue(flags.value & 2)  # Confirm overwrites.
+                        name = c.c_void_p()
+                        self.assertEqual(call(dialog.pointer, 16, [c.POINTER(c.c_void_p)], [c.byref(name)]), 0)
+                        try:
+                            self.assertEqual(c.wstring_at(name), '日本語.html')
+                        finally:
+                            dialog.ole.CoTaskMemFree(name)
+                finally:
+                    dialog.close()
 
-    def test_save_defaults_unicode_and_native_layout_without_tk(self):
-        api = self.library()
-        with patch('ctypes.WinDLL', return_value=api), patch.dict('sys.modules', {'tkinter': None}):
-            self.assertIsNone(choose_file(title='変更を保存', directory=Path('C:/テスト'), filename='編集.tflx', save=True))
-        spec = api.GetSaveFileNameW.call_args.args[0]._obj
-        self.assertEqual(spec.lStructSize, 152 if ctypes.sizeof(ctypes.c_void_p) == 8 else 88)
-        self.assertEqual(spec.lpstrFile, '編集.tflx')
-        self.assertEqual(spec.lpstrInitialDir, str(Path('C:/テスト')))
-        self.assertEqual(spec.lpstrDefExt, 'tflx')
-        self.assertTrue(spec.Flags & 2)  # native overwrite confirmation
-        self.assertTrue(spec.Flags & 8)  # never change the process directory
-        self.assertEqual(spec.nMaxFile, 32768)
-        self.assertEqual(spec.hwndOwner, 9876)
-        api.GetOpenFileNameW.assert_not_called()
+    def test_cancel_and_error_release_resources(self):
+        for outcome in [False, OSError('failed')]:
+            dialog = Mock()
+            if isinstance(outcome, Exception):
+                dialog.show.side_effect = outcome
+            else:
+                dialog.show.return_value = outcome
+            with patch('windows_file_dialog.FileDialog', return_value=dialog):
+                if isinstance(outcome, Exception):
+                    with self.assertRaises(OSError):
+                        choose(title='開く')
+                else:
+                    self.assertIsNone(choose(title='開く'))
+            dialog.results.assert_not_called()
+            dialog.close.assert_called_once()
 
-    def test_selected_path_and_open_require_existing_file(self):
-        api = self.library(result=True)
-        with patch('ctypes.WinDLL', return_value=api):
-            result = choose_file(title='開く', directory=Path.cwd(), filename='元.tfl')
-        self.assertEqual(result, Path('元.tfl').resolve())
-        self.assertTrue(api.GetOpenFileNameW.call_args.args[0]._obj.Flags & 0x1000)
+    def test_all_picker_entry_points_use_common_dialog(self):
+        with patch('windows_file_dialog.FileDialog') as factory:
+            dialog = factory.return_value
+            paths = [Path('C:/日本語/一.tfl'), Path('C:/日本語/二.tflx')]
+            dialog.results.return_value = paths
+            self.assertEqual(choose_file(title='複数', directory=Path.cwd(), multiple=True), paths)
+            dialog.results.assert_called_with(True)
+            self.assertTrue(dialog.configure.call_args.kwargs['multiple'])
+            choose_directory(title='保存先')
+            self.assertTrue(dialog.configure.call_args.kwargs['folder'])
+            choose_file(title='HTMLを保存', directory=Path.cwd(), filename='保存.html', save=True, filetypes=[('HTML', '*.html')])
+            factory.assert_called_with(True)
+            self.assertEqual(dialog.configure.call_args.kwargs['filetypes'], [('HTML', '*.html')])
 
-    def test_native_failure_is_reportable_instead_of_dropped_connection(self):
-        api = self.library(error=0x3002)
-        with patch('ctypes.WinDLL', return_value=api):
-            with self.assertRaisesRegex(RuntimeError, '0x3002'):
-                choose_file(title='保存', directory=Path.cwd(), filename='flow.tflx', save=True)
 
-    def test_dialog_is_raised_after_initialization_even_if_activation_is_denied(self):
-        from ctypes import wintypes as w
-        api = self.library()
-        user32 = Mock()
-        user32.GetParent.return_value = 12345
-        user32.GetForegroundWindow.return_value = 9876
-        user32.SetForegroundWindow.return_value = False
-
-        class Header(ctypes.Structure):
-            _fields_ = [('hwndFrom', w.HWND), ('idFrom', ctypes.c_size_t), ('code', w.UINT)]
-
-        def open_dialog(pointer):
-            spec = pointer._obj
-            self.assertTrue(spec.Flags & 0x20)
-            hook = ctypes.WINFUNCTYPE(ctypes.c_size_t, w.HWND, w.UINT, w.WPARAM, w.LPARAM)(spec.lpfnHook)
-            hook(11, 0x0110, 0, 0)  # WM_INITDIALOG is too early.
-            user32.SetWindowPos.assert_not_called()
-            notification = Header(None, 0, ctypes.c_uint(-601).value)
-            hook(11, 0x004E, 0, ctypes.addressof(notification))
-            user32.SetWindowPos.assert_not_called()
-            user32.PostMessageW.assert_called_once_with(11, 0x8001, 0, 0)
-            hook(11, 0x8001, 0, 0)
-            user32.ShowWindow.assert_called_once_with(12345, 9)
-            call = user32.SetWindowPos.call_args.args
-            self.assertEqual(call[0], 12345)
-            self.assertEqual(call[1].value, ctypes.c_void_p(-1).value)
-            self.assertEqual(call[-1], 0x53)  # Show above owner even when activation is denied.
-            user32.SetForegroundWindow.assert_called_once_with(12345)
-            return False
-
-        api.GetSaveFileNameW.side_effect = open_dialog
-        with patch('ctypes.WinDLL', side_effect=lambda name, **kw: user32 if name == 'user32' else api):
-            self.assertIsNone(choose_file(title='保存', directory=Path.cwd(), filename='flow.tflx', save=True))
+if __name__ == '__main__':
+    unittest.main()

@@ -571,7 +571,7 @@ def render_html(model):
     css = (ROOT / "web" / "viewer.css").read_text(encoding="utf-8")
     icons = json.loads((ROOT / "web" / "prep-icons.json").read_text(encoding="utf-8"))
     js = "const PREP_ICONS = " + json.dumps(icons) + ";\n"
-    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "viewer.js"))
+    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "batch-export.js", "flow-run.js", "viewer.js"))
     # HTML raw-text script elements must never contain an untrusted closing tag.
     payload = json.dumps(model, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     return template.replace("/* INLINE_CSS */", css).replace("/* INLINE_JS */", js).replace("__FLOW_DATA__", payload)
@@ -643,6 +643,23 @@ def choose_save_file(path, name, temporary=False):
     return choose_file(title="フローの変更を保存", save=True,
                        directory=default_flow_directory() if temporary else Path(path).parent,
                        filename=Path(name).name)
+
+
+def save_html_file(model, destination):
+    """Write the confirmed snapshot atomically, including when overwriting HTML."""
+    import tempfile
+    destination = Path(destination)
+    html = render_html(model)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=destination.parent,
+                                         prefix='.prepflow-', suffix='.tmp', delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(html)
+        temporary.replace(destination)
+    finally:
+        if temporary:
+            temporary.unlink(missing_ok=True)
 
 
 def save_formula_file(path, revision, change, destination=None):
@@ -737,6 +754,10 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
     picker_lock = threading.Lock()
     publish_lock = threading.Lock()
     uploaded_files = tempfile.TemporaryDirectory(prefix="prepflow-")
+    from batch_export import BatchExport
+    batch = BatchExport(uploaded_files.name)
+    from flow_runner import FlowRunner, output_details
+    runner = FlowRunner()
     if source and Path(source).is_file():
         recent.add(source)
 
@@ -849,6 +870,89 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
             expected_origins = {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}
             if not self.local_request() or not secrets.compare_digest(self.headers.get("X-Viewer-Token", ""), token) or self.headers.get("Origin") not in expected_origins:
                 return self.respond(403, {"error": "起動したビューアー画面からファイルを開いてください。"})
+            if self.path.startswith('/api/run/'):
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= 4 * 1024**2:
+                        raise ValueError('実行リクエストのサイズが正しくありません。')
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError('リクエストの形式が正しくありません。')
+                    if self.path == '/api/run/status':
+                        return self.respond(200, {'job': runner.status()})
+                    if self.path == '/api/run/cancel':
+                        return self.respond(200, {'job': runner.cancel(payload.get('requestId'))})
+                    if self.path in {'/api/run/cli', '/api/run/credentials', '/api/run/clear-credentials'}:
+                        from native_dialogs import choose_file
+                        if self.path == '/api/run/clear-credentials':
+                            runner.configure('credentials', None)
+                        else:
+                            kind = self.path.rsplit('/', 1)[-1]
+                            with picker_lock:
+                                path = choose_file(title='Tableau Prepの実行ファイルを選択' if kind == 'cli' else 'CLI用の認証JSONを選択',
+                                    directory=runner.cli.parent if kind == 'cli' and runner.cli else default_flow_directory(),
+                                    filetypes=[('Tableau Prep CLI', 'tableau-prep-cli.bat')] if kind == 'cli' else [('認証ファイル', '*.json')])
+                            if path:
+                                runner.configure(kind, path)
+                        return self.respond(200, runner.options())
+                    with export_lock:
+                        source_info = edit_sources.get(payload.get('exportKey'))
+                        model = copy.deepcopy(exports.get(payload.get('exportKey')))
+                    if not source_info or not model:
+                        raise ValueError('フローを開いてから実行してください。')
+                    if self.path == '/api/run/options':
+                        return self.respond(200, {**runner.options(), 'outputs': output_details(source_info['package'][1])})
+                    if self.path == '/api/run/start':
+                        if payload.get('revision') != model.get('editRevision'):
+                            raise ValueError('フローが更新されています。開き直してください。')
+                        changes = payload.get('changes', [])
+                        if not isinstance(changes, list) or len(changes) > 2000 or not all(isinstance(c, dict) for c in changes):
+                            raise ValueError('変更内容の形式が正しくありません。')
+                        request_id = payload.get('requestId')
+                        if not isinstance(request_id, str) or not re.fullmatch(r'[a-zA-Z0-9-]{16,80}', request_id):
+                            raise ValueError('実行リクエストを確認できません。')
+                        with edit_lock:
+                            job = runner.start(source_info['path'], model, changes, payload.get('outputs'), request_id)
+                        return self.respond(200, {'job': job})
+                    return self.respond(404, {'error': 'Not found'})
+                except Exception as exc:
+                    return self.respond(400, {'error': str(exc)})
+            if self.path.startswith('/api/batch/'):
+                try:
+                    from native_dialogs import choose_file, choose_directory
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if self.path == '/api/batch/upload':
+                        self.connection.settimeout(120)
+                        item = batch.upload(self.rfile, length, unquote(self.headers.get('X-File-Name', '')))
+                        return self.respond(200, {'items': [item]})
+                    if not 0 < length <= 1024**2:
+                        raise ValueError('リクエストのサイズが正しくありません。')
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError('リクエストの形式が正しくありません。')
+                    if self.path == '/api/batch/files':
+                        with picker_lock:
+                            paths = choose_file(title='HTMLに変換するフローを選択（複数選択可）', directory=Path.home(), multiple=True)
+                        return self.respond(200, {'items': batch.add(paths or [])})
+                    if self.path == '/api/batch/folder':
+                        with picker_lock:
+                            folder = choose_directory(title='変換元のフォルダーを選択')
+                        return self.respond(200, {'items': batch.folder(folder, payload.get('recursive') is True) if folder else []})
+                    if self.path == '/api/batch/destination':
+                        with picker_lock:
+                            folder = choose_directory(title='HTMLの保存先フォルダーを選択')
+                        return self.respond(200, batch.destination(folder) if folder else {'cancelled': True})
+                    if self.path == '/api/batch/remove':
+                        keys = payload.get('ids')
+                        if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
+                            raise ValueError('対象ファイルが正しくありません。')
+                        batch.remove(keys)
+                        return self.respond(200, {'removed': True})
+                    if self.path == '/api/batch/convert':
+                        return self.respond(200, batch.convert(payload.get('id'), payload.get('destination')))
+                    return self.respond(404, {'error': 'Not found'})
+                except Exception as exc:
+                    return self.respond(400, {'error': str(exc)})
             if self.path in {"/api/publish/defaults", "/api/publish/test-auth", "/api/publish/start"}:
                 from tableau_publish import PublishSettings, credentials, project_default, run_publish, safe_error
                 values = {}
@@ -920,7 +1024,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 finally:
                     publish_lock.release()
                 return
-            if self.path in {"/api/open", "/api/recent/open", "/api/open-folder", "/api/preview-edits", "/api/save-flow"}:
+            if self.path in {"/api/open", "/api/recent/open", "/api/open-folder", "/api/preview-edits", "/api/save-flow", "/api/save-html"}:
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 4 * 1024**2:
@@ -928,6 +1032,22 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                     payload = json.loads(self.rfile.read(length))
                     if not isinstance(payload, dict):
                         raise ValueError("リクエストの形式が正しくありません。")
+                    if self.path == '/api/save-html':
+                        from native_dialogs import choose_file
+                        with export_lock:
+                            model = copy.deepcopy(exports.get(payload.get('exportKey')))
+                        if model is None:
+                            raise ValueError('保存期限が切れました。フローを開き直してください。')
+                        source = model.get('sourcePath')
+                        with picker_lock:
+                            destination = choose_file(title='HTMLを保存', save=True,
+                                directory=Path(source).parent if source else default_flow_directory(),
+                                filename=Path(model['name']).stem + '.html',
+                                filetypes=[('HTML ファイル', '*.html')])
+                        if destination is None:
+                            return self.respond(200, {'cancelled': True})
+                        save_html_file(model, destination)
+                        return self.respond(200, {'name': destination.name, 'path': str(destination)})
                     if self.path == "/api/open-folder":
                         with export_lock:
                             source_info = edit_sources.get(payload.get("exportKey"))
@@ -1050,6 +1170,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
         pass
     finally:
         server.server_close()
+        runner.wait()
         worker.close()
         uploaded_files.cleanup()
 

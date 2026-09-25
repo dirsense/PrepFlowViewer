@@ -51,7 +51,7 @@ async function check(route, outcome) {
   let context;
   context = vm.createContext({
     CAN_EDIT:true, SERVER:{token:'test'}, loadingFlow:false, flowEditBusy:false, nativeDropReady:false, dropDepth:0,
-    DATA:{name:'test.tflx'}, flowSessions:new Map(), flowSession:{history:{}},
+    DATA:{name:'test.tflx',nodes:[]}, flowSessions:new Map(), flowSession:{history:{}},
     $:element, closeRecent(){}, syncRecentPicker(){}, refreshRecent(){},
     toast(){}, showFileError(){}, encodeURIComponent,
     init(model) {
@@ -62,24 +62,24 @@ async function check(route, outcome) {
     async fetch() {
       assert.equal(element('publish-button').disabled, true, 'disabled during request');
       if (outcome === 'error') throw new Error('test network failure');
-      return {ok:true, json:async()=>outcome === 'cancel' ? {cancelled:true} : {name:'test.tflx'}};
+      return {ok:true, json:async()=>outcome === 'cancel' ? {cancelled:true} : {name:'test.tflx',nodes:[]}};
     }
   });
   vm.runInContext(['updateFlowEditButtons','beginFlowLoad','endFlowLoad','loadRecent','loadFile','openFlowFile','beginNativeFlowDrop','finishNativeFlowDrop','handleFileDrop'].map(declaration).join('\n'), context);
   if (route === 'recent') await context.loadRecent('test-id');
-  if (route === 'drop') await context.loadFile({name:'test.tflx'});
+  if (route === 'drop') await context.loadFile({name:'test.tflx',nodes:[]});
   if (route === 'open') await context.openFlowFile();
   if (route === 'native-drop') {
     context.nativeDropReady=true;
     let browserUpload=false;
     context.loadFile=()=>{browserUpload=true;};
-    context.handleFileDrop({preventDefault(){},dataTransfer:{files:[{name:'test.tflx'}]}});
+    context.handleFileDrop({preventDefault(){},dataTransfer:{files:[{name:'test.tflx',nodes:[]}]}});
     assert.equal(browserUpload,false,'native drops must not also upload a temporary copy');
     assert.equal(context.beginNativeFlowDrop(),true);
     assert.equal(context.beginNativeFlowDrop(),false,'reject concurrent loads');
-    context.finishNativeFlowDrop(outcome==='error'?null:{name:'test.tflx'},outcome==='error'?'missing file':null);
+    context.finishNativeFlowDrop(outcome==='error'?null:{name:'test.tflx',nodes:[]},outcome==='error'?'missing file':null);
     context.nativeDropReady=false;
-    context.handleFileDrop({preventDefault(){},dataTransfer:{files:[{name:'test.tflx'}]}});
+    context.handleFileDrop({preventDefault(){},dataTransfer:{files:[{name:'test.tflx',nodes:[]}]}});
     assert.equal(browserUpload,true,'ordinary browser drops retain the upload fallback');
   }
   assert.equal(context.loadingFlow, false);
