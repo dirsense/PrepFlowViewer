@@ -68,13 +68,13 @@ def select_outputs(flow, display, selected):
 
 def prepare_snapshot(source, revision, changes, selected, destination):
     import zipfile
-    from prepflow import read_package, file_revision, apply_formula_change
+    from prepflow import read_package, file_revision, apply_flow_change
     source, destination = Path(source), Path(destination)
     if file_revision(source) != revision:
         raise ValueError('元ファイルが変更されています。フローを開き直してから実行してください。')
     _, flow, display, metadata, _ = read_package(source)
     for change in changes:
-        apply_formula_change(flow, change)
+        apply_flow_change(flow, change)
     removed = select_outputs(flow, display, selected)
     encode = lambda data: json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     if zipfile.is_zipfile(source):
@@ -213,10 +213,12 @@ class FlowRunner:
                 raise ValueError('別のフローを実行中です。完了までお待ちください。')
             if os.name != 'nt' or not self.cli or not self.cli.is_file():
                 raise ValueError('Tableau Prep Builderが見つかりません。「変更」から tableau-prep-cli.bat を選択してください。')
-            from prepflow import read_package, file_revision
+            from prepflow import read_package, file_revision, apply_flow_change
             if file_revision(source) != model['editRevision']:
                 raise ValueError('元ファイルが変更されています。フローを開き直してください。')
             _, flow, display, _, _ = read_package(source)
+            for change in changes:
+                apply_flow_change(flow, change)
             select_outputs(flow, display, selected)
             secrets = secret_values(self.credentials)
             # Keep relative file references based at the original flow directory.

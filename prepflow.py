@@ -571,7 +571,7 @@ def render_html(model):
     css = (ROOT / "web" / "viewer.css").read_text(encoding="utf-8")
     icons = json.loads((ROOT / "web" / "prep-icons.json").read_text(encoding="utf-8"))
     js = "const PREP_ICONS = " + json.dumps(icons) + ";\n"
-    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "batch-export.js", "flow-run.js", "viewer.js"))
+    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "batch-export.js", "flow-run.js", "output-edit.js", "viewer.js"))
     # HTML raw-text script elements must never contain an untrusted closing tag.
     payload = json.dumps(model, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     return template.replace("/* INLINE_CSS */", css).replace("/* INLINE_JS */", js).replace("__FLOW_DATA__", payload)
@@ -614,6 +614,13 @@ def default_flow_directory():
 def choose_flow_file(title="Tableau Prep フローを開く"):
     from native_dialogs import choose_file
     return choose_file(title=title, directory=default_flow_directory())
+
+
+def apply_flow_change(flow, change):
+    if isinstance(change, dict) and change.get('kind') == 'output':
+        from output_edit import apply_output_change
+        return apply_output_change(flow, change)
+    return apply_formula_change(flow, change)
 
 
 def apply_formula_change(flow, change):
@@ -676,7 +683,7 @@ def save_formula_file(path, revision, change, destination=None):
     destination_revision = file_revision(destination) if destination.exists() else None
     _, flow, _, metadata, _ = read_package(path)
     for edit in change if isinstance(change, list) else [change]:
-        apply_formula_change(flow, edit)
+        apply_flow_change(flow, edit)
     encoded = json.dumps(flow, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     fd, temporary = tempfile.mkstemp(prefix=".prepflow-", suffix=path.suffix, dir=destination.parent)
     os.close(fd)
@@ -749,6 +756,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
     exports, edit_sources = {}, {}
     # Successful destinations belong to this running Viewer, never to the flow file.
     publish_history = {}
+    verified_projects = {}
     export_lock = threading.Lock()
     edit_lock = threading.Lock()
     picker_lock = threading.Lock()
@@ -870,6 +878,59 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
             expected_origins = {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}
             if not self.local_request() or not secrets.compare_digest(self.headers.get("X-Viewer-Token", ""), token) or self.headers.get("Origin") not in expected_origins:
                 return self.respond(403, {"error": "起動したビューアー画面からファイルを開いてください。"})
+            if self.path.startswith('/api/output/'):
+                try:
+                    from output_edit import configuration, make_change, lookup_project
+                    from tableau_publish import PublishSettings
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= 1024**2:
+                        raise ValueError('リクエストのサイズが正しくありません。')
+                    payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError('リクエストの形式が正しくありません。')
+                    with export_lock:
+                        model = copy.deepcopy(exports.get(payload.get('exportKey')))
+                    node = next((n for n in (model or {}).get('nodes', []) if n['id'] == payload.get('stepId')), None)
+                    if not node or node['kind'] != 'output':
+                        raise ValueError('出力ステップを選択してください。')
+                    if self.path == '/api/output/defaults':
+                        saved = PublishSettings().load()
+                        return self.respond(200, {'configuration': configuration(node['raw']),
+                                                 'server': saved.get('server_url', '')})
+                    if self.path == '/api/output/folder':
+                        from native_dialogs import choose_directory
+                        with picker_lock:
+                            folder = choose_directory(title='出力先フォルダーを選択')
+                        return self.respond(200, {'folder': str(folder) if folder else None})
+                    if self.path == '/api/output/project':
+                        if not publish_lock.acquire(blocking=False):
+                            raise ValueError('サーバーへの処理中です。完了後に再度お試しください。')
+                        try:
+                            project = lookup_project(payload.get('server', ''), payload.get('project', ''), PublishSettings())
+                        finally:
+                            publish_lock.release()
+                        proof = secrets.token_urlsafe(24)
+                        with export_lock:
+                            verified_projects[proof] = (payload['exportKey'], node['id'], project)
+                            while len(verified_projects) > 200:
+                                verified_projects.pop(next(iter(verified_projects)))
+                        return self.respond(200, {**project, 'proof': proof})
+                    if self.path == '/api/output/prepare':
+                        if payload.get('revision') != model.get('editRevision'):
+                            raise ValueError('フローが更新されています。開き直してください。')
+                        desired = payload.get('destination')
+                        if not isinstance(desired, dict):
+                            raise ValueError('出力設定の形式が正しくありません。')
+                        if desired.get('format') == 'server':
+                            with export_lock:
+                                verified = verified_projects.get(payload.get('proof'))
+                            scope = {k: desired.get(k) for k in ('server', 'project', 'projectId')}
+                            if verified != (payload['exportKey'], node['id'], scope):
+                                raise ValueError('プロジェクトを確認してから変更を確定してください。')
+                        return self.respond(200, {'change': make_change(node['raw'], node.get('properties', {}), desired)})
+                    return self.respond(404, {'error': 'Not found'})
+                except Exception as exc:
+                    return self.respond(400, {'error': str(exc)})
             if self.path.startswith('/api/run/'):
                 try:
                     length = int(self.headers.get('Content-Length', '0'))
@@ -901,7 +962,8 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                     if not source_info or not model:
                         raise ValueError('フローを開いてから実行してください。')
                     if self.path == '/api/run/options':
-                        return self.respond(200, {**runner.options(), 'outputs': output_details(source_info['package'][1])})
+                        confirmed_flow = {**source_info['package'][1], 'nodes': {n['id']: n['raw'] for n in model['nodes']}}
+                        return self.respond(200, {**runner.options(), 'outputs': output_details(confirmed_flow)})
                     if self.path == '/api/run/start':
                         if payload.get('revision') != model.get('editRevision'):
                             raise ValueError('フローが更新されています。開き直してください。')
@@ -1078,7 +1140,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         if self.path == "/api/preview-edits":
                             package = copy.deepcopy(source_info["package"])
                             for change in changes:
-                                apply_formula_change(package[1], change)
+                                apply_flow_change(package[1], change)
                             result = analyze(None, filename=model["name"], package=package)
                             result["fileSizeBytes"] = model.get("fileSizeBytes")
                             revision = model["editRevision"]

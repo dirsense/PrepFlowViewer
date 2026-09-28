@@ -124,6 +124,31 @@
   <div id="run-log" role="log" aria-label="フロー実行ログ" tabindex="0"></div>
   <div class="run-progress-footer"><p id="run-cancel-note">キャンセルは実行プロセスを停止します。書き込み済みのデータは元に戻りません。</p><button class="button" id="run-cancel">キャンセル</button><button class="button primary" id="run-progress-done" hidden>閉じる</button></div>
 </dialog>
+<dialog id="output-dialog" aria-labelledby="output-title">
+  <div class="dialog-heading"><h2 id="output-title">出力先を編集</h2><button class="icon-button" id="close-output" aria-label="出力先の編集を閉じる">×</button></div>
+  <p id="output-step-name"></p>
+  <form id="output-form" autocomplete="off">
+    <div class="output-edit-row"><label for="output-target">出力先</label><select id="output-target"><option value="file">ファイル</option><option value="server">Tableau Server</option></select></div>
+    <div id="output-file-fields">
+      <div class="output-edit-row"><label for="output-format">出力タイプ</label><select id="output-format"><option value="hyper">Hyper (.hyper)</option><option value="csv">CSV (.csv)</option><option value="excel">Excel (.xlsx)</option></select></div>
+      <div class="output-edit-row"><label for="output-folder">出力パス</label><div class="output-edit-inline"><input id="output-folder" placeholder="保存先フォルダー（空欄はフローと同じ場所）"><button type="button" class="button" id="output-pick-folder">選択</button></div></div>
+      <div class="output-edit-row" id="output-sheet-row" hidden><label for="output-sheet">シート名</label><input id="output-sheet" value="Sheet1"></div>
+    </div>
+    <div id="output-server-fields" hidden>
+      <div class="output-edit-row"><label for="output-server">Server URL</label><input id="output-server" placeholder="https://tableau.example.com"></div>
+      <div class="output-edit-row"><span>サイト</span><span>既定（Default）</span></div>
+      <div class="output-edit-row"><label for="output-project">プロジェクトパス</label><input id="output-project" placeholder="親プロジェクト/子プロジェクト"></div>
+      <div class="output-project-actions"><button type="button" class="button" id="output-verify">プロジェクトを確認</button><button type="button" class="button" id="output-auth">認証情報を設定</button></div>
+      <p id="output-project-status" role="status"></p>
+      <p class="output-edit-note">パブリッシュと共通のトークンで、既定サイトのプロジェクトを照会します。</p>
+    </div>
+    <div class="output-edit-row"><label for="output-name" id="output-name-label">ファイル名（拡張子なし）</label><div class="output-edit-inline"><input id="output-name" required><span id="output-extension"></span></div></div>
+    <section class="output-writing"><h3>書き込みオプション（変更不可）</h3><p id="output-writing"></p></section>
+    <p class="output-edit-note">「変更を確定」で反映します。×・キャンセルで閉じると、ここでの変更は破棄します。</p>
+    <p id="output-error" role="alert" hidden></p>
+    <div class="output-edit-footer"><button class="button" id="output-cancel" type="button">キャンセル</button><button class="button primary" id="output-confirm" type="submit">変更を確定</button></div>
+  </form>
+</dialog>
 <dialog id="publish-dialog" aria-labelledby="publish-title">
   <div class="dialog-heading"><h2 id="publish-title">Tableau Serverへパブリッシュ</h2><button class="icon-button" id="close-publish" aria-label="閉じる">×</button></div>
   <form id="publish-form" autocomplete="off">

@@ -246,7 +246,7 @@ function init(model,{restored=false}={}){
   $('file-name').textContent=DATA.name||'PrepFlow Viewer';$('file-name').title=DATA.name||'';
   syncRecentPicker();
   $('status-text').textContent=DATA.nodes.length?'ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示':'フローを開いてください';
-  $('stats-text').textContent=SERVER.token?'データ接続なし · 計算式を編集できます':'データ接続なし · HTMLプレビュー';
+  $('stats-text').textContent=SERVER.token?'データ接続なし · 計算式・出力先を編集できます':'データ接続なし · HTMLプレビュー';
   $('empty-state').hidden=!!DATA.nodes.length;$('export-button').disabled=!DATA.nodes.length;$('open-button').hidden=!SERVER.token;
   renderGraph();selectNode(null,openingOverview);requestAnimationFrame(fit);
 }
@@ -459,6 +459,12 @@ async function moveFlowHistory(direction){
   try{
     const result=await requestFlowEdits('/api/preview-edits',history.entries.slice(0,index));
     history.index=index;applyEditedModel(result);selectNode(change.stepId);activeTab='actions';renderDetail();
+    if(change.kind==='output'){
+      closeFormulaPopup();
+      activeTab='settings';renderDetail();
+      $('status-text').textContent=undo?'出力先の変更を元に戻しました':'出力先の変更をやり直しました';
+      return;
+    }
     const origin={stepId:change.stepId,actionId:change.actionId,field:change.field};
     const key=JSON.stringify([DATA.exportKey||DATA.name,origin]);
     // Confirmed history is authoritative when returning to this formula.
@@ -645,7 +651,8 @@ function outputSettingsHtml(n){
   let options=row('完全更新',modeLabels[mode]||mode||'設定情報なし');
   if(props.incrementalOutputOperationType)options+=row('増分更新',modeLabels[props.incrementalOutputOperationType]||props.incrementalOutputOperationType);
   if(props.isIncrementalDefault)options+=row('既定の更新方法','増分更新');
-  return `<section class="output-settings" aria-label="出力設定"><dl>${fields}</dl><h3>書き込みオプション</h3><dl>${options}</dl></section>`;
+  const edit=typeof CAN_EDIT!=='undefined'&&CAN_EDIT&&['WriteToHyper','WriteToCsv','WriteToExcel','PublishExtract'].includes(type)?`<button class="button" data-edit-output="${esc(n.id)}">出力先を編集</button>`:'';
+  return `<section class="output-settings" aria-label="出力設定">${edit}<dl>${fields}</dl><h3>書き込みオプション</h3><dl>${options}</dl></section>`;
 }
 function settingsHtml(n){
   if(n.kind==='output')return outputSettingsHtml(n);
@@ -729,7 +736,7 @@ function connectionsHtml(){
   return `<p class="overview-note">接続元を開くと、使用している入力ステップを確認できます。</p>${groups.map(group=>`<details class="connection-group"><summary><span class="connection-source"><strong>${esc(group.title)}</strong><small>${esc(group.info.label)} · 入力ステップ ${group.steps} 件</small></span></summary><div class="connection-steps">${group.entries.map(entry=>entry.nodes.length?entry.nodes.map(node=>`<section class="connection-step"><h3>${esc(node.name)}</h3>${keyValues(connectionFields(connectionInfo(entry.connection,node),node))}<button class="button" data-connection-step="${esc(node.id)}">ステップの接続設定を表示</button></section>`).join(''):`<section class="connection-step"><h3>${esc(entry.info.name||'接続定義')}</h3>${keyValues(connectionFields(entry.info))}<p class="overview-note">使用している入力ステップはありません。</p></section>`).join('')}</div></details>`).join('')}`;
 }
 function overviewHelpHtml(){
-  return `<div class="overview-help"><h3>フローを見る</h3><ul><li>ステップをクリックすると詳細を表示します。同じステップをもう一度押すか、マップの空白を押すとフロー情報へ戻ります。</li><li>ホイールで拡大・縮小、ドラッグで移動できます。</li><li>空白のダブルクリック、または上部の全体表示アイコンで、フロー全体を表示します。</li><li>全体表示中は右ペインの幅に合わせて自動調整します。手動で拡大・移動した後は倍率と位置を維持します。</li></ul><h3>処理・計算式を確認する</h3><ul><li>「フィールド一覧」「変更内容」「設定」を切り替えて確認します。検索でフィールドや加工を絞り込めます。</li><li>計算式は拡大表示で「原文」と「自動整形」を切り替えられます。コピーや対応する括弧の強調も使えます。</li></ul>${CAN_EDIT?'<h3>編集・保存・共有する</h3><ul><li>計算式を編集したら「変更を確定」。この段階ではViewer内だけに反映します。</li><li>上部のUndo / Redoで確定した変更を戻せます。ダウンロードアイコンの「フローを保存」でTFL / TFLXへ保存します。</li><li>ダウンロードアイコンの「HTMLを保存」は、閲覧専用の共有ファイルを書き出します。「HTMLを一括保存」で複数のフローをまとめて変換できます。</li><li>上部のパブリッシュアイコンからTableau Serverへ公開できます。PC上のフロー保存とは別の操作です。</li><li>三角の実行アイコンから、出力名・保存先を確認して個別実行・すべて実行できます。実行にはTableau Prep Builderが必要で、出力先の実データを更新します。進捗は実行ログで確認できます。</li></ul>':'<h3>このHTMLについて</h3><p>閲覧専用です。計算式の編集・フローの保存・ServerへのパブリッシュはViewer本体で行います。</p>'}<p class="overview-note">データソースには接続せず、フローに保存された定義を表示しています。</p></div>`;
+  return `<div class="overview-help"><h3>フローを見る</h3><ul><li>ステップをクリックすると詳細を表示します。同じステップをもう一度押すか、マップの空白を押すとフロー情報へ戻ります。</li><li>ホイールで拡大・縮小、ドラッグで移動できます。</li><li>空白のダブルクリック、または上部の全体表示アイコンで、フロー全体を表示します。</li><li>全体表示中は右ペインの幅に合わせて自動調整します。手動で拡大・移動した後は倍率と位置を維持します。</li></ul><h3>処理・計算式を確認する</h3><ul><li>「フィールド一覧」「変更内容」「設定」を切り替えて確認します。検索でフィールドや加工を絞り込めます。</li><li>計算式は拡大表示で「原文」と「自動整形」を切り替えられます。コピーや対応する括弧の強調も使えます。</li></ul>${CAN_EDIT?'<h3>編集・保存・共有する</h3><ul><li>計算式を編集したら「変更を確定」。この段階ではViewer内だけに反映します。</li><li>上部のUndo / Redoで確定した変更を戻せます。ダウンロードアイコンの「フローを保存」でTFL / TFLXへ保存します。</li><li>ダウンロードアイコンの「HTMLを保存」は、閲覧専用の共有ファイルを書き出します。「HTMLを一括保存」で複数のフローをまとめて変換できます。</li><li>上部のパブリッシュアイコンからTableau Serverへ公開できます。PC上のフロー保存とは別の操作です。</li><li>出力ステップの「出力先を編集」から、ファイル形式・名前・保存先、またはTableau Serverへの出力に変更できます。Serverは既定サイトのプロジェクトを認証して確認します。書き込みオプションは変更できません。×で閉じると未確定の変更を破棄します。</li><li>三角の実行アイコンから、出力名・保存先を確認して個別実行・すべて実行できます。実行にはTableau Prep Builderが必要で、出力先の実データを更新します。進捗は実行ログで確認できます。</li></ul>':'<h3>このHTMLについて</h3><p>閲覧専用です。計算式の編集・フローの保存・ServerへのパブリッシュはViewer本体で行います。</p>'}<p class="overview-note">データソースには接続せず、フローに保存された定義を表示しています。</p></div>`;
 }
 function renderFlowInfo(container){
   const source=DATA.sourcePath||'',folder=source.slice(0,Math.max(source.lastIndexOf('/'),source.lastIndexOf('\\'))+1);
@@ -923,6 +930,7 @@ $('formula-full').onpointerout=e=>hoverFormulaBrackets(e.relatedTarget?.closest?
 if(CAN_EDIT){
   setupDownloadMenu();
   setupFlowRun();
+  setupOutputEditor();
   $('publish-button').hidden=false;$('publish-button').onclick=openPublish;
   $('close-publish').onclick=()=>{if(!publishBusy){$('publish-dialog').close();$('publish-token-value').value='';}};
   $('publish-dialog').addEventListener('cancel',e=>{if(publishBusy)e.preventDefault();else $('publish-token-value').value='';});
@@ -932,6 +940,7 @@ if(CAN_EDIT){
 }else{
   $('publish-button')?.remove();$('publish-dialog')?.remove();
   $('run-dialog')?.remove();$('run-progress-dialog')?.remove();
+  $('output-dialog')?.remove();
   $('flow-edit-tools')?.remove();$('save-formula')?.remove();
 }
 $('formula-dialog').addEventListener('cancel',e=>{e.preventDefault();closeFormulaPopup();});
@@ -987,7 +996,7 @@ document.addEventListener('drop',handleFileDrop);
 window.addEventListener('resize',()=>{if(autoFit)fit();});
 window.addEventListener('resize',sizeFormulaPopup);
 new ResizeObserver(()=>requestAnimationFrame(updateFormulaPreviews)).observe(document.querySelector('.detail-section'));
-function viewerCloseState(){return {dirty:CAN_EDIT&&([...formulaDrafts.values()].some(d=>d.dirty)||[...flowSessions.values()].some(s=>s.history.dirty)),busy:flowEditBusy||loadingFlow||(typeof batchIsBusy==='function'&&batchIsBusy())};}
+function viewerCloseState(){return {dirty:CAN_EDIT&&([...formulaDrafts.values()].some(d=>d.dirty)||[...flowSessions.values()].some(s=>s.history.dirty)||(typeof outputDraftDirty==='function'&&outputDraftDirty())),busy:flowEditBusy||loadingFlow||(typeof batchIsBusy==='function'&&batchIsBusy())};}
 window.addEventListener('beforeunload',e=>{if(viewerCloseState().dirty||viewerCloseState().busy){e.preventDefault();e.returnValue='';}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('formula-dialog').open){e.preventDefault();closeFormulaPopup();}});
 init(DATA,{restored:!!SERVER.restoredFlow});
