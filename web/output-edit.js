@@ -16,6 +16,7 @@ function syncOutputDropdowns() {
     button.querySelector('span').textContent = select.selectedOptions[0]?.textContent || '';
     button.disabled = select.disabled;
     for (const option of list.children) {
+      option.textContent = [...select.options].find(item => item.value === option.dataset.value)?.textContent || '';
       option.setAttribute('aria-selected', String(option.dataset.value === select.value));
     }
   }
@@ -88,14 +89,14 @@ function setupOutputDropdown(id) {
 }
 
 async function outputRequest(action, data = {}) {
-  const response = await fetch(`/api/output/${action}`, {
+  const response = await uiFetch(`/api/output/${action}`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-Viewer-Token': SERVER.token},
     body: JSON.stringify({exportKey: DATA.exportKey, revision: DATA.editRevision,
       stepId: outputEditor.stepId, ...data})
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || '出力設定を確認できませんでした。');
+  if (!response.ok) throw new Error(result.error || ui('出力設定を確認できませんでした。'));
   return result;
 }
 
@@ -113,7 +114,7 @@ function outputDestination() {
 }
 
 function outputError(message = '') {
-  $('output-error').textContent = message;
+  uiBind($('output-error'), 'textContent', () => uiMessage(message));
   $('output-error').hidden = !message;
 }
 
@@ -124,13 +125,13 @@ function renderOutputEditor() {
   $('output-file-fields').hidden = server;
   $('output-server-fields').hidden = !server;
   $('output-sheet-row').hidden = value.format !== 'excel';
-  $('output-name-label').textContent = server ? 'データソース名' : 'ファイル名（拡張子なし）';
+  uiBind($('output-name-label'), 'textContent', () => server ? ui('データソース名') : ui('ファイル名（拡張子なし）'));
   $('output-extension').textContent = server ? '' : ({hyper: '.hyper', csv: '.csv', excel: '.xlsx'})[value.format];
   $('output-confirm').disabled = outputEditor.busy || !value.name.trim() || (server && !outputEditor.verified) ||
     (!server && outputEditor.baseline === JSON.stringify(value));
   $('output-verify').disabled = outputEditor.busy || outputEditor.checking;
-  $('output-project-status').textContent = outputEditor.checking ? 'プロジェクトを確認中…' :
-    outputEditor.verified ? `確認済み · プロジェクトID: ${outputEditor.verified.projectId}` : 'プロジェクトは未確認です。';
+  uiBind($('output-project-status'), 'textContent', () => outputEditor.checking ? ui('プロジェクトを確認中…') :
+    outputEditor.verified ? ui`確認済み · プロジェクトID: ${outputEditor.verified.projectId}` : ui('プロジェクトは未確認です。'));
 }
 
 function outputBusy(busy) {
@@ -195,12 +196,12 @@ async function openOutputEditor(stepId) {
     // Show the existing options, but never provide controls to change them.
     const node = byId.get(stepId);
     const options = Object.values(node.properties || {}).find(p => p?.nodePropertyType === '.v2020_2_1.OutputRefreshOptions') || {};
-    const labels = {outputOperationTypeCreate: 'テーブルの作成', outputOperationTypeAppend: 'テーブルに追加',
-      outputOperationTypeTruncate: 'データの置換', outputOperationTypeUpsert: 'データの更新と挿入'};
+    const labels = uiLabels({outputOperationTypeCreate: 'テーブルの作成', outputOperationTypeAppend: 'テーブルに追加',
+      outputOperationTypeTruncate: 'データの置換', outputOperationTypeUpsert: 'データの更新と挿入'});
     const mode = options.outputOperationType || (config.format === 'excel' ? 'outputOperationTypeAppend' : 'outputOperationTypeCreate');
-    $('output-writing').textContent = `完全更新: ${labels[mode] || mode}` +
-      (options.incrementalOutputOperationType ? ` ／ 増分更新: ${labels[options.incrementalOutputOperationType] || options.incrementalOutputOperationType}` : '') +
-      (options.isIncrementalDefault ? ' ／ 既定: 増分更新' : '');
+    uiBind($('output-writing'), 'textContent', () => ui`完全更新: ${labels[mode] || mode}` +
+      (options.incrementalOutputOperationType ? ui` ／ 増分更新: ${labels[options.incrementalOutputOperationType] || options.incrementalOutputOperationType}` : '') +
+      (options.isIncrementalDefault ? ui(' ／ 既定: 増分更新') : ''));
   } catch (error) {
     outputError(error.message);
   } finally {
@@ -231,7 +232,7 @@ async function confirmOutputEdit(event) {
     applyEditedModel(result);
     activeTab = 'settings';
     renderDetail();
-    $('status-text').textContent = '出力先の変更を確定しました · ファイルには未保存';
+    uiBind($('status-text'), 'textContent', () => ui('出力先の変更を確定しました · ファイルには未保存'));
     outputBusy(false);
     closeOutputEditor();
   } catch (error) {
@@ -279,7 +280,7 @@ function setupOutputEditor() {
       $('publish-token-value').value = '';
     }
     if (url) $('publish-server').value = url;
-    publishLog('出力先の確認には「認証テスト」を行い、この画面を閉じてください。フローのパブリッシュは不要です。');
+    publishLog(ui('出力先の確認には「認証テスト」を行い、この画面を閉じてください。フローのパブリッシュは不要です。'));
   };
   $('output-pick-folder').onclick = async () => {
     outputBusy(true);

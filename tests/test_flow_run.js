@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const vm=require('node:vm');
+const vm=require('./ui-test-context.cjs');
 const elements=new Map();
 function element(id){
   if(!elements.has(id))elements.set(id,{value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,open:false,dataset:{},showModal(){this.open=true;},close(){this.open=false;},scrollHeight:0,scrollTop:0,clientHeight:0,replaceChildren(...items){this.children=items;}});
@@ -17,7 +17,7 @@ async function main(){
   let calls=[];
   ctx.fetch=async(url,request)=>{
     calls.push({url,payload:JSON.parse(request.body)});
-    assert.equal(request.headers['X-Viewer-Token'],'token');
+    assert.equal(request.headers.get('X-Viewer-Token'),'token');
     return {ok:true,json:async()=>({job:{requestId:'request-id-12345678',name:'test.tfl',running:true,state:'running',elapsedMs:5000,outputs:[outputs[0]],logs:[{time:'12:00',message:'started',level:'info'}]}})};
   };
   await ctx.startRun(['a']);

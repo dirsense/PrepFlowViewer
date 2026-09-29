@@ -1,5 +1,9 @@
 const assert=require('node:assert/strict');
-const {filterDisplayRows,filterRangeText}=require('../web/filter-display.js');
+const fs=require('node:fs'),vm=require('./ui-test-context.cjs');
+const filterContext=vm.createContext({});
+vm.runInContext(fs.readFileSync(require.resolve('../web/filter-display.js'),'utf8'),filterContext);
+const filterDisplayRows=(...args)=>JSON.parse(JSON.stringify(filterContext.filterDisplayRows(...args)));
+const filterRangeText=filterContext.filterRangeText;
 assert.deepEqual(filterDisplayRows({exclude:false,ranges:{F2:[{startValue:null,endValue:null,includeStart:true,includeEnd:true}]}},'RangeFilter'),[{field:'F2',summary:'保持：null'}]);
 assert.deepEqual(filterDisplayRows({exclude:true,values:{F3:[null]}},'ValueFilter'),[{field:'F3',summary:'除外：null'}]);
 assert.deepEqual(filterDisplayRows({exclude:true,values:{Word:['"null"','""','"abc"']}},'ValueFilter'),[{field:'Word',summary:'除外："null"、""、"abc"'}]);
@@ -10,13 +14,12 @@ assert.equal(filterRangeText({startValue:0,endValue:null,includeStart:false}),'>
 console.log('Filters: null, literal strings, multiple values and range boundaries passed.');
 
 // Exercise the real category and card rendering used by both Viewer and exported HTML.
-const fs=require('node:fs'),vm=require('node:vm');
 const viewer=fs.readFileSync(require.resolve('../web/viewer.js'),'utf8');
 const definition=name=>{
   const start=viewer.indexOf(`function ${name}(`),end=viewer.indexOf('\nfunction ',start+1);
   assert.ok(start>=0);return viewer.slice(start,end<0?undefined:end);
 };
-const annotation=viewer.match(/const ANNOTATIONS\s*=\s*\[[\s\S]*?\n\];/);
+const annotation=viewer.match(/const ANNOTATIONS\s*=\s*uiLabels\(\[[\s\S]*?\n\]\);/);
 assert.ok(annotation);
 let origin;
 const context=vm.createContext({selected:'step',PREP_ICONS:{annotations:{filter:'filter.svg'}},

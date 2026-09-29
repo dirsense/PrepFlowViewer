@@ -24,7 +24,7 @@ TYPE_LABELS = {
 }
 ACTION_LABELS = {
     "AddColumn": "計算フィールド", "QuickCalcColumn": "計算フィールド", "QuickDateNameCalcColumn": "日付を変換", "DuplicateColumn": "フィールドを複製",
-    "RemoveColumns": "フィールドの削除", "RenameColumn": "フィールド名の変更",
+    "RemoveColumn": "フィールドの削除", "RemoveColumns": "フィールドの削除", "RenameColumn": "フィールド名の変更",
     "ChangeColumnType": "タイプを変更", "RangeFilter": "フィルター", "ValueFilter": "フィルター",
     "Filter": "フィルター", "FilterOperation": "フィルター", "MultiRowCalc": "計算フィールド", "Remap": "値のグループ化・置換", "MergeColumns": "フィールドをマージ",
     "SimpleJoin": "結合", "SimpleUnion": "ユニオン", "Aggregate": "集計",
@@ -326,8 +326,9 @@ def apply_action(fields, op, owner, warnings, removed=None):
                 if removed is not None:
                     removed.append({**deleted, "deleted": True, "status": "統合元", "namespace": op.get("namespace", "Default")})
         fields[target] = merged_field
-    elif t == "RemoveColumns":
-        for col in n.get("columnNames", []):
+    elif t in {"RemoveColumn", "RemoveColumns"}:
+        columns = [n["columnName"]] if t == "RemoveColumn" and n.get("columnName") else n.get("columnNames", [])
+        for col in columns:
             deleted = fields.pop(find_name(fields, col), None)
             if deleted is not None and removed is not None:
                 record(deleted)
@@ -566,12 +567,48 @@ def analyze(source, filename=None, package=None):
     return result
 
 
-def render_html(model):
+def html_export_options(options):
+    """Validate the languages bundled in a standalone HTML, independently of UI locale."""
+    from localization import SUPPORTED_LANGUAGES, language
+    if options is None:
+        options = {'languages': [language.get()], 'showSwitcher': False}
+    if not isinstance(options, dict):
+        raise ValueError('HTMLの言語設定が正しくありません。')
+    locales = options.get('languages')
+    if not isinstance(locales, list) or not locales or any(
+            not isinstance(locale, str) or locale not in SUPPORTED_LANGUAGES for locale in locales):
+        raise ValueError('対応言語を1つ以上選択してください。')
+    locales = list(dict.fromkeys(locales))
+    switcher = options.get('showSwitcher', False)
+    if not isinstance(switcher, bool):
+        raise ValueError('HTMLの言語設定が正しくありません。')
+    if not switcher and len(locales) != 1:
+        raise ValueError('言語切替アイコンなしの場合は、言語を1つ選択してください。')
+    default = options.get('defaultLanguage', language.get())
+    if default not in locales:
+        default = locales[0]
+    return {'languages': locales, 'defaultLanguage': default, 'showSwitcher': switcher}
+
+
+def render_html(model, html_options=None):
+    from localization import translation_catalog, SUPPORTED_LANGUAGES, language
     template = (ROOT / "web" / "viewer.html").read_text(encoding="utf-8")
     css = (ROOT / "web" / "viewer.css").read_text(encoding="utf-8")
     icons = json.loads((ROOT / "web" / "prep-icons.json").read_text(encoding="utf-8"))
     js = "const PREP_ICONS = " + json.dumps(icons) + ";\n"
-    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "batch-export.js", "flow-run.js", "output-edit.js", "viewer.js"))
+    options = html_export_options(html_options) if html_options is not None else None
+    locales = options['languages'] if options else SUPPORTED_LANGUAGES
+    catalogs = {locale: translation_catalog(locale) for locale in locales if locale != 'ja'}
+    js += 'const UI_EXPORT_OPTIONS = ' + json.dumps(options) + ';\n'
+    js += "const UI_CATALOGS = " + json.dumps(catalogs, ensure_ascii=True).replace('<', '\\u003c') + ";\n"
+    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("i18n.js", "formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "batch-export.js", "flow-run.js", "output-edit.js", "viewer.js"))
+    template = template.replace('<html lang="ja" data-language="ja">',
+                                f'<html lang="{options["defaultLanguage"] if options else language.get()}" data-language="{options["defaultLanguage"] if options else language.get()}">', 1)
+    if options:
+        template = re.sub(r'<button role="menuitemradio" data-language="([^"]+)"[^>]*>.*?</button>',
+                          lambda match: match[0] if match[1] in locales else '', template)
+        if not options['showSwitcher']:
+            template = template.replace('class="language-picker"', 'class="language-picker" hidden')
     # HTML raw-text script elements must never contain an untrusted closing tag.
     payload = json.dumps(model, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     return template.replace("/* INLINE_CSS */", css).replace("/* INLINE_JS */", js).replace("__FLOW_DATA__", payload)
@@ -652,11 +689,11 @@ def choose_save_file(path, name, temporary=False):
                        filename=Path(name).name)
 
 
-def save_html_file(model, destination):
+def save_html_file(model, destination, html_options=None):
     """Write the confirmed snapshot atomically, including when overwriting HTML."""
     import tempfile
     destination = Path(destination)
-    html = render_html(model)
+    html = render_html(model, html_export_options(html_options))
     temporary = None
     try:
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=destination.parent,
@@ -749,6 +786,8 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
 
     startup_source = Path(source).resolve() if source is not None else None
     recent = RecentFlows(history_path)
+    from localization import LanguagePreference
+    language_preference = LanguagePreference(recent.storage.with_name('language.json'))
     recent_files = recent.list()
     if source is None and recent_files:
         source = Path(recent_files[0]["path"])
@@ -827,7 +866,8 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 model["openingError"] = f"直近のフローを読み込めませんでした: {exc}"
         return render_html(model).replace(
             '<script id="server-config" type="application/json">{}</script>',
-            '<script id="server-config" type="application/json">' + json.dumps({"token": token, "restoredFlow": restored_flow}) + '</script>',
+            '<script id="server-config" type="application/json">' + json.dumps({"token": token, "restoredFlow": restored_flow,
+                "language": language_preference.get()}) + '</script>',
         ).encode("utf-8")
 
     class Handler(BaseHTTPRequestHandler):
@@ -852,6 +892,9 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
             return self.headers.get("Host") in {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
 
         def do_GET(self):
+            from localization import set_language, preferred_language
+            set_language(self.headers.get('X-Viewer-Language') or language_preference.get()
+                         or preferred_language(self.headers.get('Accept-Language', '')))
             if not self.local_request():
                 return self.respond(403, {"error": "ローカルの画面からアクセスしてください。"})
             if self.path == "/":
@@ -875,9 +918,22 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
             self.respond(404, {"error": "Not found"})
 
         def do_POST(self):
+            from localization import set_language, preferred_language
+            set_language(self.headers.get('X-Viewer-Language') or language_preference.get()
+                         or preferred_language(self.headers.get('Accept-Language', '')))
             expected_origins = {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}
             if not self.local_request() or not secrets.compare_digest(self.headers.get("X-Viewer-Token", ""), token) or self.headers.get("Origin") not in expected_origins:
                 return self.respond(403, {"error": "起動したビューアー画面からファイルを開いてください。"})
+            if self.path == '/api/language':
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= 128:
+                        raise ValueError('Invalid language request')
+                    payload = json.loads(self.rfile.read(length))
+                    language_preference.save(payload.get('language'))
+                    return self.respond(200, {'language': language_preference.get()})
+                except (OSError, ValueError, AttributeError):
+                    return self.respond(400, {'error': '表示言語を保存できませんでした。'})
             if self.path.startswith('/api/output/'):
                 try:
                     from output_edit import configuration, make_change, lookup_project
@@ -996,6 +1052,15 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         with picker_lock:
                             paths = choose_file(title='HTMLに変換するフローを選択（複数選択可）', directory=Path.home(), multiple=True)
                         return self.respond(200, {'items': batch.add(paths or [])})
+                    if self.path == '/api/batch/file':
+                        with picker_lock:
+                            path = choose_flow_file('HTMLに変換するフローを選択')
+                        if path is None:
+                            return self.respond(200, {'cancelled': True})
+                        items = batch.add([path])
+                        if not items:
+                            raise ValueError('.tflx または .tfl を選択してください。')
+                        return self.respond(200, {**items[0], 'path': str(path)})
                     if self.path == '/api/batch/folder':
                         with picker_lock:
                             folder = choose_directory(title='変換元のフォルダーを選択')
@@ -1011,7 +1076,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         batch.remove(keys)
                         return self.respond(200, {'removed': True})
                     if self.path == '/api/batch/convert':
-                        return self.respond(200, batch.convert(payload.get('id'), payload.get('destination')))
+                        return self.respond(200, batch.convert(payload.get('id'), payload.get('destination'), payload.get('htmlOptions')))
                     return self.respond(404, {'error': 'Not found'})
                 except Exception as exc:
                     return self.respond(400, {'error': str(exc)})
@@ -1096,8 +1161,12 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         raise ValueError("リクエストの形式が正しくありません。")
                     if self.path == '/api/save-html':
                         from native_dialogs import choose_file
-                        with export_lock:
-                            model = copy.deepcopy(exports.get(payload.get('exportKey')))
+                        options = html_export_options(payload.get('htmlOptions'))
+                        if payload.get('sourceId'):
+                            model = batch.model(payload['sourceId'])
+                        else:
+                            with export_lock:
+                                model = copy.deepcopy(exports.get(payload.get('exportKey')))
                         if model is None:
                             raise ValueError('保存期限が切れました。フローを開き直してください。')
                         source = model.get('sourcePath')
@@ -1108,7 +1177,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                                 filetypes=[('HTML ファイル', '*.html')])
                         if destination is None:
                             return self.respond(200, {'cancelled': True})
-                        save_html_file(model, destination)
+                        save_html_file(model, destination, options)
                         return self.respond(200, {'name': destination.name, 'path': str(destination)})
                     if self.path == "/api/open-folder":
                         with export_lock:

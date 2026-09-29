@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const vm=require('node:vm');
+const vm=require('./ui-test-context.cjs');
 const {FormulaEditHistory,FlowEditHistory}=require('../web/formula-edit');
 const source=fs.readFileSync(require.resolve('../web/viewer.js'),'utf8');
 function declaration(name){

@@ -90,17 +90,28 @@ class BatchExport:
             self.destinations[key] = folder
         return {'id': key, 'path': str(folder)}
 
-    def convert(self, key, destination):
-        from prepflow import analyze, render_html
+    def model(self, key):
+        from prepflow import analyze
+        with self.lock:
+            item = self.files.get(key)
+            if item is None:
+                raise ValueError('対象ファイルと保存先を選び直してください。')
+            with item['path'].open('rb') as source:
+                model = analyze(source, filename=item['name'])
+            if not item['temporary']:
+                model['sourcePath'] = str(item['path'])
+            return model
+
+    def convert(self, key, destination, html_options=None):
+        from prepflow import render_html, html_export_options
         # Serialize conversion/removal. Replace only after the full HTML is written.
         with self.lock:
             item = self.files.get(key)
             folder = self.destinations.get(destination)
             if item is None or folder is None:
                 raise ValueError('対象ファイルと保存先を選び直してください。')
-            with item['path'].open('rb') as source:
-                model = analyze(source, filename=item['name'])
-            html = render_html(model)
+            model = self.model(key)
+            html = render_html(model, html_export_options(html_options))
             name = Path(item['name']).stem + '.html'
             output = folder / name
             temporary = None

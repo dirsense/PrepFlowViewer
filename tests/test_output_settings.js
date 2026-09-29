@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('./ui-test-context.cjs');
 const source=fs.readFileSync(require.resolve('../web/viewer.js'),'utf8');
 function definition(name){
   const start=source.indexOf(`function ${name}(`),end=source.indexOf('\nfunction ',start+1);

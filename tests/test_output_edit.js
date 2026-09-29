@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
+const vm = require('./ui-test-context.cjs');
 
 const elements = new Map();
 const element = id => {

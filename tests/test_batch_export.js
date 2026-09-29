@@ -1,12 +1,12 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const vm=require('node:vm');
+const vm=require('./ui-test-context.cjs');
 const elements=new Map();
 function element(id){
   if(!elements.has(id))elements.set(id,{textContent:'',innerHTML:'',hidden:false,disabled:false,value:'',checked:true,setAttribute(){}});
   return elements.get(id);
 }
-const context=vm.createContext({$:element,esc:value=>String(value),SERVER:{token:'test'}});
+const context=vm.createContext({$:element,esc:value=>String(value),SERVER:{token:'test'},exportHtml:()=>{}});
 vm.runInContext(fs.readFileSync(require.resolve('../web/batch-export.js'),'utf8'),context);
 async function main(){
   let calls=[];
@@ -15,7 +15,7 @@ async function main(){
     if(data.id==='bad')return {ok:false,json:async()=>({error:'壊れたフローです'})};
     return {ok:true,json:async()=>({path:'saved/'+data.id+'.html'})};
   };
-  vm.runInContext("batchState.destination={id:'output',path:'saved'};addBatchItems([{id:'a',name:'A.tfl'},{id:'bad',name:'Bad.tfl'},{id:'b',name:'B.tfl'}]);",context);
+  vm.runInContext("htmlExportState.languages=['ja'];batchState.destination={id:'output',path:'saved'};addBatchItems([{id:'a',name:'A.tfl'},{id:'bad',name:'Bad.tfl'},{id:'b',name:'B.tfl'}]);",context);
   await context.convertBatch();
   assert.deepEqual(calls,['a','bad','b'],'failure must not stop subsequent conversions');
   assert.equal(element('batch-progress').textContent,'完了：保存 2件・失敗 1件');
@@ -41,6 +41,7 @@ async function main(){
   element('batch-dialog').open=true;
   element('batch-drop').classList={remove(){},add(){}};
   context.dropDepth=2;
+  vm.runInContext("htmlExportState.tab='batch'",context);
   context.addDroppedBatchFiles=files=>{context.droppedFiles=files;};
   context.setupDownloadMenu();
   let prevented=false,stopped=false;

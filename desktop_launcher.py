@@ -60,21 +60,23 @@ class CloseGuard:
         return False
 
     def _check(self):
+        from localization import set_language, translate
         try:
             state = self.window.evaluate_js(
                 'typeof viewerCloseState === "function" ? viewerCloseState() : {dirty:false,busy:false}')
+            set_language(state.get('language'))
             if state.get('busy'):
-                self.window.create_confirmation_dialog('PrepFlow Viewer', '処理中です。処理が終わってから閉じてください。')
+                self.window.create_confirmation_dialog('PrepFlow Viewer', translate('処理中です。処理が終わってから閉じてください。'))
                 return
             if state.get('dirty') and not self.window.create_confirmation_dialog(
-                'PrepFlow Viewer', '保存していない編集があります。編集を破棄して終了しますか？'
+                'PrepFlow Viewer', translate('保存していない編集があります。編集を破棄して終了しますか？')
             ):
                 return
             self.allowed = True
             self.window.destroy()
         except Exception:
             if self.window.create_confirmation_dialog(
-                'PrepFlow Viewer', '画面の状態を確認できませんでした。保存していない編集を破棄して終了しますか？'
+                'PrepFlow Viewer', translate('画面の状態を確認できませんでした。保存していない編集を破棄して終了しますか？')
             ):
                 self.allowed = True
                 self.window.destroy()

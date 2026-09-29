@@ -4,6 +4,10 @@ from pathlib import Path
 
 
 def choose_file(*, title, directory, filename="", save=False, multiple=False, filetypes=None):
+    from localization import translate
+    title = translate(title)
+    if filetypes:
+        filetypes = [(translate(label), pattern) for label, pattern in filetypes]
     if os.name != "nt":
         import tkinter as tk
         from tkinter import filedialog
@@ -33,6 +37,8 @@ def choose_file(*, title, directory, filename="", save=False, multiple=False, fi
 
 
 def choose_directory(*, title, directory=None):
+    from localization import translate
+    title = translate(title)
     if os.name != 'nt':
         import tkinter as tk
         from tkinter import filedialog
