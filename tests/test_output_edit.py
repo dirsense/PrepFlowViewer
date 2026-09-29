@@ -29,7 +29,7 @@ class OutputEditTests(unittest.TestCase):
         prepflow.apply_flow_change(flow, change)
         result = flow['nodes']['csv']
         self.assertEqual(result['nodeType'], '.v1.PublishExtract')
-        self.assertEqual(result['projectName'], 'Child')
+        self.assertEqual(result['projectName'], 'Parent/Child')
         self.assertEqual(result['projectLuid'], 'project-123')
         self.assertEqual(result['description'], 'keep comment')
         self.assertNotIn('csvOutputFile', result)
@@ -45,6 +45,35 @@ class OutputEditTests(unittest.TestCase):
             if target == 'excel':
                 self.assertEqual(properties[REFRESH]['outputOperationType'], 'outputOperationTypeCreate')
                 self.assertEqual(converted['excelOutputSheetName'], '[Results$]')
+
+    def test_nested_project_survives_save_reopen_and_execution_snapshot(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for suffix in ('.tfl', '.tflx'):
+                with self.subTest(suffix=suffix):
+                    source, saved, run = [Path(folder) / (name + suffix) for name in ('source', 'saved', 'run')]
+                    flow = fixture()
+                    if suffix == '.tflx':
+                        with zipfile.ZipFile(source, 'w') as package:
+                            package.writestr('flow', json.dumps(flow))
+                    else:
+                        source.write_text(json.dumps(flow), encoding='utf-8')
+                    original = source.read_bytes()
+                    node = flow['nodes']['csv']
+                    desired = {**configuration(node), 'format': 'server', 'name': 'Sales',
+                               'server': 'https://tableau.example.com',
+                               'project': 'aaa/bbb/ccc', 'projectId': 'verified-project-id'}
+                    change = make_change(node, {}, desired)
+                    revision = prepflow.file_revision(source)
+                    prepflow.save_formula_file(source, revision, [change], saved)
+                    prepare_snapshot(source, revision, [change], ['csv'], run)
+                    for path in (saved, run):
+                        reopened = prepflow.read_package(path)[1]['nodes']['csv']
+                        self.assertEqual(reopened['projectName'], 'aaa/bbb/ccc')
+                        self.assertEqual(reopened['projectLuid'], 'verified-project-id')
+                        self.assertEqual(configuration(reopened)['project'], 'aaa/bbb/ccc')
+                        again, _ = edited_node(reopened, {}, configuration(reopened))
+                        self.assertEqual(again, reopened)
+                    self.assertEqual(source.read_bytes(), original)
 
     def test_writing_options_are_preserved_and_incompatible_csv_rejected(self):
         node = fixture()['nodes']['hyper']
@@ -144,6 +173,14 @@ class OutputEditTests(unittest.TestCase):
                         post('output/prepare', destination={**desired, 'project': 'Other'}, proof=verification['proof'])
                     preview = post('preview-edits', changes=[change])
                     self.assertIn('PublishExtract', json.dumps(preview))
+                    output = next(node for node in preview['nodes'] if node['id'] == 'csv')
+                    self.assertEqual(output['raw']['projectName'], 'Parent/Child')
+                    reopened = post('output/defaults')['configuration']
+                    self.assertEqual(reopened['project'], 'Parent/Child')
+                    self.assertEqual(reopened['projectId'], 'id-123')
+                    with patch('output_edit.lookup_project', return_value=resolved) as lookup:
+                        post('output/project', server=reopened['server'], project=reopened['project'])
+                        self.assertEqual(lookup.call_args.args[1], 'Parent/Child')
                     self.assertNotIn('token_value', prepflow.render_html(preview).split('<script id="flow-data"')[1].split('</script>')[0])
                 finally:
                     server.close()

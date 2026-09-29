@@ -92,7 +92,8 @@ def edited_node(node, properties, desired):
             raise ValueError('プロジェクトを確認してから変更を確定してください。')
         if old_kind == 'server' and any(node.get(k) not in (None, '', 'Default') for k in ('siteName', 'siteContentUrl', 'siteUrl', 'siteId', 'siteLuid')):
             raise ValueError('既定サイト以外へのServer出力は編集できません。')
-        result.update(serverUrl=server_url(desired.get('server', '')), projectName=project.split('/')[-1],
+        # Keep the verified hierarchy for display and subsequent project lookups.
+        result.update(serverUrl=server_url(desired.get('server', '')), projectName=project,
                       projectLuid=project_id, datasourceName=name)
         result.setdefault('datasourceDescription', '')
     else:
