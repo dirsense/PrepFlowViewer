@@ -91,19 +91,16 @@ class SchemaRecoveryTests(unittest.TestCase):
         self.assertEqual(infer_type("DATENAME('month', [Birthday], 'monday')", fields), 'string')
         self.assertEqual(infer_type('DATENAME()', fields), 'unknown')
 
-    def test_actual_sample_merges_and_date_conversions(self):
-        week42 = {n['name']: n for n in prepflow.analyze(prepflow.ROOT / 'samples/PreppinData_2024_Week_42.tflx')['nodes']}
-        split = week42['Split up Week']
-        self.assertFalse(split['warnings'])
-        self.assertNotIn('Week - Split 1 - Split 1 - Split 3', {f['name'] for f in split['fields']})
-        detail = week42['Theme Detail']
-        self.assertIn('Theme Detail', {f['name'] for f in detail['fields']})
-        self.assertFalse({'Film', 'Broadway musical', 'Musical', 'Country', 'CelebratingBBC'} & {f['name'] for f in detail['fields']})
-        self.assertFalse(detail['schemaUncertain'])
-        week34 = {n['name']: n for n in prepflow.analyze(prepflow.ROOT / 'samples/PreppinData_2024_Week_34.tflx')['nodes']}
-        for step, column in [('Birthday Day', 'Birthday Day'), ('Cake Weekday', 'Cake Weekday')]:
-            self.assertEqual(next(f['type'] for f in week34[step]['fields'] if f['name'] == column), 'string')
-            self.assertFalse(week34[step]['schemaUncertain'])
+    def test_merge_and_date_conversion_in_analyzed_flow(self):
+        from flow_fixtures import flow_stream
+        result = prepflow.analyze(flow_stream({'Primary': 'string', 'Secondary': 'string', 'Day': 'date'}, [
+            {'nodeType': '.v1.MergeColumns', 'mergedColumnName': 'Primary', 'mergeColumnsList': ['Primary', 'Secondary']},
+            {'nodeType': '.v2021_1_4.QuickDateNameCalcColumn', 'columnName': 'Day', 'expression': "DATENAME('weekday', [Day])"}]))
+        node = next(n for n in result['nodes'] if n['id'] == 'transform')
+        fields = {f['name']: f for f in node['fields']}
+        self.assertNotIn('Secondary', fields)
+        self.assertEqual(fields['Day']['type'], 'string')
+        self.assertFalse(node['schemaUncertain'])
 
 
 if __name__ == '__main__':

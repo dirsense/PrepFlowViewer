@@ -1,4 +1,4 @@
-// フローの初期化、選択状態、前後のステップへの移動。
+// Flow initialization, selection and step navigation.
 
 function init(model, { restored = false } = {}) {
   const openingOverview = model.nodes.length && (byId.size > 0 || restored) ? 'info' : 'help';
@@ -30,13 +30,13 @@ function init(model, { restored = false } = {}) {
   syncRecentPicker();
   uiBind($('status-text'), 'textContent', () =>
     DATA.nodes.length
-      ? ui('ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示')
-      : ui('フローを開いてください'),
+      ? ui('Drag to pan · Scroll to zoom · Double-click to fit')
+      : ui('Open a flow'),
   );
   uiBind($('stats-text'), 'textContent', () =>
     SERVER.token
-      ? ui('データ接続なし · 計算式・出力先を編集できます')
-      : ui('データ接続なし · HTMLプレビュー'),
+      ? ui('No data connections · Edit formulas and output destinations')
+      : ui('No data connections · HTML preview'),
   );
   $('empty-state').hidden = !!DATA.nodes.length;
   $('export-button').disabled = false;
@@ -69,7 +69,7 @@ function navigateStep(direction) {
     return;
   }
   $('step-choices').innerHTML =
-    ui`<p>${direction === 'upstream' ? ui('前') : ui('次')}のステップを選択</p>${ids
+    ui`<p>Select a ${direction === 'upstream' ? ui('previous') : ui('next')} step</p>${ids
       .map((id) => {
         const n = byId.get(id);
         return `<button data-select="${esc(id)}"><span class="step-choice-color" style="background:${esc(n.color)}"></span><span>${esc(n.name)}</span></button>`;
@@ -92,9 +92,9 @@ function selectNode(id, defaultOverview = DATA.nodes.length ? 'info' : 'help') {
     changesMode = 'all';
     $('detail-search').value = '';
     $('selected-icon').innerHTML = '';
-    uiBind($('selected-name'), 'textContent', () => ui('ステップを選択してください'));
+    uiBind($('selected-name'), 'textContent', () => ui('Select a step'));
     $('selected-summary').textContent = '';
-    uiBind($('tab-settings'), 'textContent', () => ui('設定'));
+    uiBind($('tab-settings'), 'textContent', () => ui('Settings'));
     highlightGraph();
     renderDetail();
     return;
@@ -124,13 +124,13 @@ function selectNode(id, defaultOverview = DATA.nodes.length ? 'info' : 'help') {
     'textContent',
     () =>
       ({
-        input: ui('設定・接続'),
-        join: ui('結合設定'),
-        union: ui('ユニオン設定'),
-        aggregate: ui('集計設定'),
-        pivot: ui('ピボット設定'),
-        output: ui('出力設定'),
-      })[n.kind] || ui('設定'),
+        input: ui('Settings and connections'),
+        join: ui('Join settings'),
+        union: ui('Union settings'),
+        aggregate: ui('Aggregate settings'),
+        pivot: ui('Pivot settings'),
+        output: ui('Output settings'),
+      })[n.kind] || ui('Settings'),
   );
   highlightGraph();
   renderDetail();

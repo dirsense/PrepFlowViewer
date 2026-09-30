@@ -17,13 +17,13 @@ EXE_NAME = f'PrepFlowViewer_v{VERSION}.exe'
 def public_archive(package, dist, version):
     """Package the application and guides for a public Windows release."""
     if not re.fullmatch(r'\d+(?:\.\d+)*', version):
-        raise ValueError('バージョン番号が不正です。')
+        raise ValueError('Invalid version number.')
     package, dist = Path(package).resolve(), Path(dist).resolve()
     required = [f'PrepFlowViewer_v{version}.exe', '_internal',
-                '操作ガイド.html', 'manual.en.html', 'はじめに.txt', 'publish.example.ini']
+                'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt', 'publish.example.ini']
     for name in required:
         if not (package / name).exists():
-            raise RuntimeError(f'配布対象のファイルがありません: {name}')
+            raise RuntimeError(f'Missing distribution file: {name}')
     # Explicit entries keep local credentials and flow files out of public ZIPs.
     members = required + ['Python-LICENSE.txt', 'licenses']
     dist.mkdir(parents=True, exist_ok=True)
@@ -39,21 +39,21 @@ def public_archive(package, dist, version):
                         archive.write(file, Path('PrepFlowViewer') / file.relative_to(package))
         with zipfile.ZipFile(staged) as archive:
             if archive.testzip() is not None:
-                raise RuntimeError('配布ZIPの検証に失敗しました。')
+                raise RuntimeError('Distribution ZIP validation failed.')
         staged.replace(destination)
     return destination
 
 
 def main():
     if os.name != 'nt':
-        raise SystemExit('Windows上でビルドしてください。')
+        raise SystemExit('Build this application on Windows.')
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--keep-manual', action='store_true', help='既存の配布版の操作ガイドをそのまま保持する')
+    parser.add_argument('--keep-manual', action='store_true', help='Keep the existing packaged English guide unchanged')
     args = parser.parse_args()
     package = ROOT / 'dist/PrepFlowViewer'
     if package.resolve().parent != (ROOT / 'dist').resolve():
-        raise SystemExit('配布先フォルダーが想定した場所ではありません。')
-    manual = package / '操作ガイド.html'
+        raise SystemExit('Unexpected distribution directory.')
+    manual = package / 'manual.html'
     manual_bytes = manual.read_bytes() if args.keep_manual else None
     manual_stat = manual.stat() if args.keep_manual else None
     env = dict(os.environ)
@@ -70,15 +70,14 @@ def main():
         str(ROOT / 'desktop_launcher.py'),
     ], cwd=ROOT, env=env, check=True)
     (package / 'PrepFlowViewer.exe').rename(package / EXE_NAME)
-    shutil.copy2(ROOT / 'DISTRIBUTION.txt', package / 'はじめに.txt')
+    shutil.copy2(ROOT / 'DISTRIBUTION.txt', package / 'DISTRIBUTION.txt')
     if args.keep_manual:
         manual.write_bytes(manual_bytes)
         os.utime(manual, ns=(manual_stat.st_atime_ns, manual_stat.st_mtime_ns))
     else:
         shutil.copy2(ROOT / 'manual.html', manual)
-    english_manual = (ROOT / 'manual.en.html').read_text(encoding='utf-8')
-    (package / 'manual.en.html').write_text(
-        english_manual.replace('href="manual.html"', 'href="操作ガイド.html"'), encoding='utf-8')
+    shutil.copy2(ROOT / 'manual.jp.html', package / 'manual.jp.html')
+    shutil.copy2(ROOT / 'DISTRIBUTION.jp.txt', package / 'DISTRIBUTION.jp.txt')
     shutil.copy2(ROOT / 'publish.example.ini', package / 'publish.example.ini')
     # Keep the bundled interpreter's license alongside the distribution.
     license_path = Path(sys.base_prefix) / 'LICENSE.txt'

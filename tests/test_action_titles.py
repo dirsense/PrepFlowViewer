@@ -6,10 +6,10 @@ import prepflow
 class ActionTitleTests(unittest.TestCase):
     def test_quick_calc_titles_for_legacy_and_current_formats(self):
         expected = {
-            'Lowercase': '小文字にする', 'Uppercase': '大文字にする', 'Titlecase': 'タイトルケースにする',
-            'RemoveLetters': '文字を削除', 'RemoveNumbers': '数値を削除', 'RemovePunctuations': '句読点を削除',
-            'RemoveAllSpaces': 'すべてのスペースを削除', 'RemoveExtraSpaces': '余分なスペースを削除',
-            'TrimSpaces': 'スペースのトリミング',
+            'Lowercase': 'Convert to lowercase', 'Uppercase': 'Convert to uppercase', 'Titlecase': 'Convert to title case',
+            'RemoveLetters': 'Remove letters', 'RemoveNumbers': 'Remove numbers', 'RemovePunctuations': 'Remove punctuation',
+            'RemoveAllSpaces': 'Remove all spaces', 'RemoveExtraSpaces': 'Remove extra spaces',
+            'TrimSpaces': 'Trim spaces',
         }
         for version in ('v1', 'v2018_3_3', 'v2024_2_0'):
             for kind, title in expected.items():
@@ -21,10 +21,12 @@ class ActionTitleTests(unittest.TestCase):
                     self.assertEqual(raw, original)
 
     def test_order_step_titles_keep_fields_and_expressions(self):
-        model = prepflow.analyze(prepflow.ROOT / 'samples' / 'PreppinData_2023_Week_15.tflx')
-        order = next(n for n in model['nodes'] if n['name'] == 'Order')
-        self.assertEqual([a['label'] for a in order['actions']],
-                         ['フィールドを複製', '文字を削除', 'タイプを変更', 'フィールド名の変更'])
-        self.assertEqual(order['actions'][0]['expressions'], [{'field': 'Column-1', 'expression': '[Column]'}])
-        self.assertEqual(order['actions'][1]['expressions'],
-                         [{'field': 'Column-1', 'expression': "REGEXP_REPLACE([Column-1], '[[:alpha:]]', '')"}])
+        from flow_fixtures import flow_stream
+        model = prepflow.analyze(flow_stream({'Code': 'string'}, [
+            {'nodeType': '.v1.AddColumn', 'columnName': 'Copy', 'expression': '[Code]'},
+            {'nodeType': '.v2018_3_3.QuickCalcColumn', 'calcExpressionType': 'RemoveLetters',
+             'columnName': 'Copy', 'expression': "REGEXP_REPLACE([Copy], '[[:alpha:]]', '')"}]))
+        actions = next(n for n in model['nodes'] if n['id'] == 'transform')['actions']
+        self.assertEqual([a['label'] for a in actions], ['Calculated field', 'Remove letters'])
+        self.assertEqual(actions[0]['expressions'], [{'field': 'Copy', 'expression': '[Code]'}])
+        self.assertIn('REGEXP_REPLACE', actions[1]['expressions'][0]['expression'])

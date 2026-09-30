@@ -1,26 +1,16 @@
-# 架空のTableau Server接続サンプル
+# Synthetic Tableau Server connection sample
 
-`Demo_Tableau_Server_Connections.tflx` は、PrepFlow Viewerの接続情報の表示を試すために作成した架空のフローです。
+`Demo_Tableau_Server_Connections.tflx` was created for PrepFlow Viewer to test connection information without contacting a real server.
 
-| Server | プロジェクト名 | データソース名 | 入力ステップ |
+| Server | Project | Data source | Input steps |
 | --- | --- | --- | --- |
-| https://analytics.example.invalid | 営業分析 | 売上明細 | 国内売上、海外売上 |
-| https://analytics.example.invalid | 顧客管理 | 顧客マスター | 顧客情報 |
-| https://analytics.example.invalid | 経営計画 | 月次予算 | 月次予算 |
-| https://reference.example.invalid | 共通マスター | 店舗マスター | 店舗情報 |
+| https://analytics.example.invalid | Sales Analytics | Sales Detail | Domestic Sales, International Sales |
+| https://analytics.example.invalid | Customer Management | Customer Master | Customers |
+| https://analytics.example.invalid | Business Planning | Monthly Budget | Monthly Budget |
+| https://reference.example.invalid | Shared Masters | Store Master | Stores |
 
-## 確認方法
+Open the flow, clear the step selection and choose Connections in the overview. Expand a server to see its input steps. Select a step's connection settings to inspect server, site, project, data source and owner.
 
-1. Viewerの「フローを開く」から、このTFLXを選びます。
-2. マップの空白をクリックして選択を解除します。
-3. 右ペインの「接続情報」を選びます。
-4. Serverをクリックすると、その配下の入力ステップを展開できます。
-5. 「ステップの接続設定を表示」で、データソース名とプロジェクト名を確認できます。
+The first server has four inputs; the second has one. Domestic and International Sales share one connection definition. Each input leads to a simple cleaning step. The sites are Default and Reference; owner names such as `demo_sales` are fictitious.
 
-最初のServerには4つの入力ステップ、2番目には1つがあります。「国内売上」と「海外売上」は同じ接続定義を共有しています。各入力の後ろには確認用のクリーニングステップを配置しています。
-
-最初のServerは既定サイト（Default）、2番目はReferenceサイトを想定しています。所有者はdemo_salesなどの架空名です。入力ステップの「設定・接続」では、サーバー・サイト・プロジェクト名・データソース名・所有者を順に表示します。実際のフローに保存されていない項目は「フローに情報なし」と表示します。
-
-Server・プロジェクト・データソース・フィールドはすべて架空です。認証情報や実データは含みません。実在しない `.invalid` ドメインを使用しており、ViewerはServerへ接続せず定義のみを表示します。
-
-このサンプルはViewerでの表示確認専用です。Tableau Prep Builderでの開封・実行や、Serverへのパブリッシュは検証していません。
+The file contains no credentials or real data. The reserved `.invalid` domains do not refer to live servers. The Viewer reads the definition without connecting. Opening/running this synthetic flow in Tableau Prep Builder and publishing it to Server are not supported test scenarios.

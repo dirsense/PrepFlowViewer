@@ -73,11 +73,11 @@ assert.equal(
 );
 assert.equal(
   Object.keys(context.connectionFields(context.connectionInfo(a))).join(','),
-  'サーバー,プロジェクト名,データソース名',
+  'Server,Project name,Data source name',
 );
 let html = context.connectionsHtml();
-assert.match(html, /データソース名/);
-assert.match(html, /プロジェクト名/);
+assert.match(html, /Data source name/);
+assert.match(html, /Project name/);
 assert.equal((html.match(/data-connection-step=/g) || []).length, 4);
 const file = {
   id: 'f',
@@ -100,9 +100,9 @@ a.connectionAttributes.datasourcename = '<img src=x onerror=bad()>';
 html = context.connectionsHtml();
 assert.ok(!html.includes('<img'));
 assert.ok(html.includes('&lt;img'));
-assert.match(context.overviewHelpHtml(), /変更を確定/);
+assert.match(context.overviewHelpHtml(), /Confirm changes/);
 context.CAN_EDIT = false;
-assert.match(context.overviewHelpHtml(), /閲覧専用/);
+assert.match(context.overviewHelpHtml(), /read-only/);
 // Real LoadSqlProxy layout: server on the shared connection, names on each input step.
 const shared = {
   id: 'shared',
@@ -124,32 +124,32 @@ const input = (id, project, source) => ({
   },
   display: {},
 });
-const first = input('Orders input', '営業', 'Orders'),
-  second = input('Budget input', '経理', 'Budget');
+const first = input('Orders input', 'Sales', 'Orders'),
+  second = input('Budget input', 'Finance', 'Budget');
 context.DATA = { connections: [shared], nodes: [first, second] };
 groups = context.connectionGroups(context.DATA);
 assert.equal(groups.length, 1);
 assert.equal(groups[0].steps, 2);
-assert.equal(context.connectionInfo(shared, first).project, '営業');
+assert.equal(context.connectionInfo(shared, first).project, 'Sales');
 assert.equal(context.connectionInfo(shared, second).datasource, 'Budget');
 html = context.connectionsHtml();
 const sections = html.match(/<section class="connection-step">[\s\S]*?<\/section>/g);
 assert.equal(sections.length, 2);
-assert.ok(sections[0].includes('営業'));
+assert.ok(sections[0].includes('Sales'));
 assert.ok(sections[0].includes('Orders'));
-assert.ok(!sections[0].includes('経理'));
-assert.ok(sections[1].includes('経理'));
+assert.ok(!sections[0].includes('Finance'));
+assert.ok(sections[1].includes('Finance'));
 assert.ok(!html.includes('Stale'));
-assert.ok(!html.includes('<dt>サイト'));
-assert.ok(!html.includes('<dt>所有者'));
+assert.ok(!html.includes('<dt>Site'));
+assert.ok(!html.includes('<dt>Owner'));
 context.rawDetail = () => '';
 vm.runInContext(['tableauConnectionHtml', 'settingsHtml'].map(definition).join('\n'), context);
 html = context.settingsHtml(first);
-assert.ok(html.includes('<dd>営業</dd>'));
+assert.ok(html.includes('<dd>Sales</dd>'));
 assert.ok(html.includes('<dd>Orders</dd>'));
 assert.ok(html.includes('<dd>https://shared.example.invalid</dd>'));
-assert.ok(!html.includes('<dt>サイト'));
-assert.ok(!html.includes('<dt>所有者'));
+assert.ok(!html.includes('<dt>Site'));
+assert.ok(!html.includes('<dt>Owner'));
 const rawOnly = {
   ...first,
   connection: {},

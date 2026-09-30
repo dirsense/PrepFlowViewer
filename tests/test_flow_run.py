@@ -22,7 +22,7 @@ def fixture():
     flow['nodes']['step']['nextNodes'] = [{'nextNodeId': 'csv'}, {'nextNodeId': 'hyper'}]
     for key, typ, pathkey in [('csv', 'WriteToCsv', 'csvOutputFile'), ('hyper', 'WriteToHyper', 'hyperOutputFile')]:
         flow['nodes'][key] = {'id': key, 'baseType': 'output', 'nodeType': '.v1.' + typ, 'name': key,
-                              pathkey: 'C:\\出力先\\結果.' + key, 'nextNodes': []}
+                              pathkey: 'C:\\Destination\\結果.' + key, 'nextNodes': []}
     return flow
 
 
@@ -62,7 +62,7 @@ class FlowRunTests(unittest.TestCase):
             self.assertEqual(flow, fixture())
         details = output_details(fixture())
         self.assertEqual(details[0]['filename'], '結果.csv')
-        self.assertEqual(details[0]['folder'], 'C:\\出力先')
+        self.assertEqual(details[0]['folder'], 'C:\\Destination')
         with self.assertRaises(ValueError):
             cli_command('C:/tableau-prep-cli.bat', 'C:/bad%PATH%.tfl')
         command = cli_command('C:/Program Files/Tableau/tableau-prep-cli.bat', 'C:/日本語 & file.tfl')

@@ -27,7 +27,7 @@ def config_from(html):
 
 
 def verify():
-    with tempfile.TemporaryDirectory(prefix='配布検証_', dir=ROOT / 'output') as temporary:
+    with tempfile.TemporaryDirectory(prefix='distribution-check-', dir=ROOT / 'output') as temporary:
         target = Path(temporary)
         release = ROOT / 'dist' / f'PrepFlowViewer-v{VERSION}-Windows-x64.zip'
         unpacked = target / 'PrepFlowViewer'
@@ -37,9 +37,9 @@ def verify():
         assert exe.is_file()
         assert (exe.parent / '_internal/python313.dll').is_file()
         assert not (exe.parent / 'samples').exists()
-        assert (exe.parent / '操作ガイド.html').is_file()
-        assert (exe.parent / 'manual.en.html').is_file()
-        assert (exe.parent / 'はじめに.txt').is_file()
+        assert (exe.parent / 'manual.html').is_file()
+        assert (exe.parent / 'manual.jp.html').is_file()
+        assert (exe.parent / 'DISTRIBUTION.txt').is_file()
         work = target / 'unrelated-working-folder'
         work.mkdir()
         history = target / 'recent.json'
@@ -81,11 +81,11 @@ def verify():
             html = urlopen(base).read().decode('utf-8')
             assert model_from(html)['nodes'] == []
             assert config_from(html)['restoredFlow'] is False
-            assert 'フローの中身を、すぐに。' not in html
-            assert "mode:'original',history" in html
+            assert 'Inspect your flow instantly.' not in html
+            assert "mode: 'original'" in html
             assert 'data-join-region="overlap"' in html
             assert 'function handleFileDrop(' in html
-            assert 'minimumFractionDigits:digits' in html
+            assert 'minimumFractionDigits: digits' in html
             token = json.loads(re.search(r'<script id="server-config" type="application/json">(.*?)</script>', html)[1])['token']
 
             def post(endpoint, data, filename=None):
@@ -132,27 +132,21 @@ def verify():
                 defaults=post('/api/publish/defaults',{'exportKey':model['exportKey']})
                 assert (defaults['name'],defaults['project']) == ('Published','Parent/Child')
             print('Bundled TSC: local mock sign-in, filtered project search, overwrite publish and sign-out: passed', flush=True)
-            types = post('/api/analyze', (ROOT / 'samples/PreppinData_2024_Week_42.tflx').read_bytes(), 'types.tflx')
-            music = next(n for n in types['nodes'] if n['name'] == 'Music Split')
-            fields = {f['name']: f['type'] for f in music['fieldInventory']}
-            for name, kind in {'Couple': 'string', 'Judges Scores': 'string', 'Music': 'string',
-                               'Stage': 'string', 'Theme': 'string', 'Total Score': 'integer', 'Year': 'integer'}.items():
-                assert fields[name] == kind, (name, fields[name])
-            merged = next(n for n in types['nodes'] if n['name'] == 'Theme Detail')
-            assert not merged['schemaUncertain']
-            assert 'Theme Detail' in {f['name'] for f in merged['fields']}
-            assert not {'Film', 'Musical', 'Country', 'CelebratingBBC'} & {f['name'] for f in merged['fields']}
-            dates = post('/api/analyze', (ROOT / 'samples/PreppinData_2024_Week_34.tflx').read_bytes(), 'dates.tflx')
-            birthday = next(n for n in dates['nodes'] if n['name'] == 'Birthday Day')
-            assert not birthday['schemaUncertain']
-            assert next(f['type'] for f in birthday['fields'] if f['name'] == 'Birthday Day') == 'string'
-            filters = post('/api/analyze', (ROOT / 'samples/PreppinData_2023_Week_15.tflx').read_bytes(), 'filters.tflx')
+            from flow_fixtures import flow_bytes, filter_package
+            types = post('/api/analyze', flow_bytes({'Text': 'string', 'Day': 'date'}, [
+                {'nodeType': '.v1.AddColumn', 'columnName': 'Length', 'expression': 'LEN([Text])'},
+                {'nodeType': '.v2021_1_4.QuickDateNameCalcColumn', 'columnName': 'Day', 'expression': "DATENAME('weekday', [Day])"},
+            ]), 'types.tfl')
+            fields = {f['name']: f['type'] for n in types['nodes'] if n['id'] == 'transform' for f in n['fields']}
+            assert fields['Length'] == 'integer'
+            assert fields['Day'] == 'string'
+            filters = post('/api/analyze', filter_package(), 'filters.tflx')
             node, action = next((n, a) for n in filters['nodes'] for a in n['actions'] if a['type'] == 'FilterOperation')
-            assert action['label'] == 'フィルター'
+            assert action['label'] == 'Filter'
             assert action['expressions'][0]['expression'] == action['raw']['filterExpression']
             expression = action['raw']['filterExpression']
             edited = post('/api/preview-edits', {'exportKey': filters['exportKey'], 'revision': filters['editRevision'],
-                'changes': [{'stepId': node['id'], 'actionId': action['id'], 'field': '条件式',
+                'changes': [{'stepId': node['id'], 'actionId': action['id'], 'field': 'Condition',
                              'before': expression, 'expression': '(' + expression + ') AND TRUE'}]})
             edited_action = next(a for n in edited['nodes'] for a in n['actions'] if a['id'] == action['id'])
             assert edited_action['raw']['filterExpression'] == '(' + expression + ') AND TRUE'

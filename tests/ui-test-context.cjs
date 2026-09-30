@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const catalogs = Object.fromEntries(
-  ['en', 'fr', 'es', 'de', 'pt-BR'].map((locale) => [
+  ['en', 'ja', 'fr', 'es', 'de', 'pt-BR'].map((locale) => [
     locale,
     JSON.parse(fs.readFileSync(require.resolve(`../web/${locale}.json`), 'utf8')),
   ]),
@@ -14,10 +14,10 @@ const source = fs
 exports.createContext = (globals = {}) => {
   const context = vm.createContext(globals);
   context.document ||= {};
-  context.document.documentElement ||= { dataset: {}, lang: 'ja' };
+  context.document.documentElement ||= { dataset: {}, lang: 'en' };
   context.document.getElementById ||= () => null;
   context.Headers ||= Headers;
-  context.navigator ||= { languages: ['ja-JP'], language: 'ja-JP' };
+  context.navigator ||= { languages: ['en-US'], language: 'en-US' };
   context.UI_CATALOGS ||= catalogs;
   vm.runInContext(source, context);
   return context;

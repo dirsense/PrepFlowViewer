@@ -16,9 +16,9 @@ class NativeDialogTests(unittest.TestCase):
             with self.subTest(save=save, multiple=multiple, folder=folder):
                 dialog = FileDialog(save)
                 try:
-                    dialog.configure(title='選択', directory=Path.cwd(), filename='日本語.html' if save else '',
+                    dialog.configure(title='Select', directory=Path.cwd(), filename='日本語.html' if save else '',
                                      save=save, multiple=multiple, folder=folder,
-                                     filetypes=[('HTML ファイル', '*.html')] if save else None)
+                                     filetypes=[('HTML files', '*.html')] if save else None)
                     flags = c.c_uint32()
                     self.assertEqual(call(dialog.pointer, 10, [c.POINTER(c.c_uint32)], [c.byref(flags)]), 0)
                     self.assertTrue(flags.value & 0x40)  # Filesystem paths, not virtual Shell items.
@@ -60,9 +60,9 @@ class NativeDialogTests(unittest.TestCase):
             self.assertEqual(choose_file(title='複数', directory=Path.cwd(), multiple=True), paths)
             dialog.results.assert_called_with(True)
             self.assertTrue(dialog.configure.call_args.kwargs['multiple'])
-            choose_directory(title='保存先')
+            choose_directory(title='Destination')
             self.assertTrue(dialog.configure.call_args.kwargs['folder'])
-            choose_file(title='HTMLを出力', directory=Path.cwd(), filename='保存.html', save=True, filetypes=[('HTML', '*.html')])
+            choose_file(title='Export HTML', directory=Path.cwd(), filename='Save.html', save=True, filetypes=[('HTML', '*.html')])
             factory.assert_called_with(True)
             self.assertEqual(dialog.configure.call_args.kwargs['filetypes'], [('HTML', '*.html')])
 

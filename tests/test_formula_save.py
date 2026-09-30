@@ -67,12 +67,14 @@ class FormulaSaveTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), externally_changed)
 
     def test_filter_expression_round_trip_does_not_add_regular_expression(self):
-        source = prepflow.ROOT / 'samples' / 'PreppinData_2023_Week_15.tflx'
+        from flow_fixtures import filter_package
+        source = Path(self.temporary.name) / 'source.tflx'
+        source.write_bytes(filter_package())
         self.path.write_bytes(source.read_bytes())
         model = prepflow.analyze(self.path)
         step, action = next((n, a) for n in model['nodes'] for a in n['actions'] if a['type'] == 'FilterOperation')
         before = action['raw']['filterExpression']
-        change = {'stepId': step['id'], 'actionId': action['id'], 'field': '条件式',
+        change = {'stepId': step['id'], 'actionId': action['id'], 'field': 'Condition',
                   'before': before, 'expression': '// test\n(' + before + ') AND TRUE'}
         package = prepflow.read_package(self.path)
         prepflow.apply_formula_change(package[1], change)

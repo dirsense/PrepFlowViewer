@@ -63,18 +63,18 @@ class FormulaTypeTests(unittest.TestCase):
             with self.subTest(expression=expression):
                 self.assertEqual(infer_type(expression, self.fields), 'unknown')
 
-    def test_week_42_types_propagate_through_cleanup_and_aggregate(self):
-        model = prepflow.analyze(prepflow.ROOT / 'samples' / 'PreppinData_2024_Week_42.tflx')
-        music = next(n for n in model['nodes'] if n['name'] == 'Music Split')
-        inventory = {f['name']: f for f in music['fieldInventory']}
-        expected = {'Couple': 'string', 'Stage': 'string', 'Theme': 'string',
-                    'Judges Scores': 'string', 'Music': 'string',
-                    'Total Score': 'integer', 'Year': 'integer'}
-        for name, kind in expected.items():
-            with self.subTest(field=name):
-                self.assertEqual(inventory[name]['type'], kind)
-                self.assertEqual(inventory[name]['typeSource'], '推定')
-        self.assertTrue(inventory['Music']['deleted'])
+    def test_inferred_types_propagate_through_cleanup(self):
+        from flow_fixtures import flow_stream
+        model = prepflow.analyze(flow_stream({'Text': 'string'}, [
+            {'nodeType': '.v1.AddColumn', 'columnName': 'Length', 'expression': 'LEN([Text])'},
+            {'nodeType': '.v1.AddColumn', 'columnName': 'Next', 'expression': '[Length] + 1'},
+            {'nodeType': '.v1.RemoveColumns', 'columnNames': ['Text']}]))
+        node = next(n for n in model['nodes'] if n['id'] == 'transform')
+        fields = {f['name']: f for f in node['fieldInventory']}
+        self.assertEqual(fields['Length']['type'], 'integer')
+        self.assertEqual(fields['Next']['type'], 'integer')
+        self.assertEqual(fields['Next']['typeSource'], 'Estimated')
+        self.assertTrue(fields['Text']['deleted'])
 
     def test_same_field_replacement_reads_previous_type_without_mutating_it(self):
         fields = {'Score': prepflow.make_field('Score', 'integer', 'input')}
@@ -82,8 +82,8 @@ class FormulaTypeTests(unittest.TestCase):
                          'expression': 'IF [Score] < 0 THEN NULL ELSE [Score] END'}}
         result = prepflow.apply_action(fields, action, 'clean', [])
         self.assertEqual(result['Score']['type'], 'integer')
-        self.assertEqual(fields['Score']['typeSource'], '定義')
-        self.assertEqual(result['Score']['typeSource'], '推定')
+        self.assertEqual(fields['Score']['typeSource'], 'Definition')
+        self.assertEqual(result['Score']['typeSource'], 'Estimated')
 
 
 if __name__ == '__main__':

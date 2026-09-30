@@ -15,11 +15,11 @@ function filterRangeText(range) {
       hi != null ? (range.includeEnd ? '≤ ' : '< ') + filterValueText(hi) : '',
     ]
       .filter(Boolean)
-      .join(ui(' かつ ')) || ui('範囲指定なし')
+      .join(ui(' and ')) || ui('No range specified')
   );
 }
 function filterDisplayRows(raw, type) {
-  const label = raw.exclude ? ui('除外') : ui('保持');
+  const label = raw.exclude ? ui('Exclude') : ui('Keep');
   const source = type === 'RangeFilter' ? raw.ranges : raw.values;
   return Object.entries(source || {}).map(([field, values]) => ({
     field,

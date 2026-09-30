@@ -1,7 +1,7 @@
 /* Translate authored UI strings only. Flow names, comments and formulas stay verbatim. */
 const UI_LANGUAGE_KEY = 'prepflow.language';
 const uiExportOptions = typeof UI_EXPORT_OPTIONS === 'undefined' ? null : UI_EXPORT_OPTIONS;
-const UI_LANGUAGES = uiExportOptions?.languages || ['ja', ...Object.keys(UI_CATALOGS)];
+const UI_LANGUAGES = uiExportOptions?.languages || Object.keys(UI_CATALOGS);
 const uiPreferenceKey = uiExportOptions
   ? UI_LANGUAGE_KEY + '.html.' + UI_LANGUAGES.join(',') + '.' + uiExportOptions.defaultLanguage
   : UI_LANGUAGE_KEY;
@@ -41,9 +41,10 @@ const uiMessageOrigins = new Map();
 const uiCatalog = () => UI_CATALOGS[uiLanguage] || {};
 const uiTranslation = (source) =>
   Object.hasOwn(uiCatalog(), source) ? uiCatalog()[source] : undefined;
-const uiHasJapanese = (value) => /[ぁ-んァ-ヶ一-龯]/.test(value);
+const uiIsAuthored = (value) =>
+  Object.hasOwn(UI_CATALOGS.en || Object.values(UI_CATALOGS)[0] || {}, value.trim());
 function uiText(source) {
-  if (uiLanguage === 'ja') return source;
+  if (uiLanguage === 'en') return source;
   const trimmed = source.trim();
   const translated = uiTranslation(source) ?? uiTranslation(trimmed);
   return translated === undefined
@@ -112,7 +113,7 @@ const uiMessagePatterns = Object.keys(UI_CATALOGS.en || Object.values(UI_CATALOG
 function uiMessage(source) {
   source = String(source ?? '');
   source = uiMessageOrigins.get(source) ?? source;
-  if (uiLanguage === 'ja') return source;
+  if (uiLanguage === 'en') return source;
   if (uiTranslation(source) !== undefined) return uiTranslation(source);
   for (const { pattern, slots, key } of uiMessagePatterns) {
     const match = pattern.exec(source);
@@ -139,13 +140,13 @@ function uiBind(element, property, render) {
 function uiCaptureStatic() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let node; (node = walker.nextNode()); ) {
-    if (!node.parentElement.closest('script,style') && uiHasJapanese(node.nodeValue))
+    if (!node.parentElement.closest('script,style') && uiIsAuthored(node.nodeValue))
       uiStaticText.push([node, node.nodeValue]);
   }
   for (const element of document.querySelectorAll('[title],[aria-label],[placeholder]')) {
     for (const name of ['title', 'aria-label', 'placeholder']) {
       const value = element.getAttribute(name);
-      if (value && uiHasJapanese(value)) uiStaticAttributes.push([element, name, value]);
+      if (value && uiIsAuthored(value)) uiStaticAttributes.push([element, name, value]);
     }
   }
 }
@@ -184,7 +185,7 @@ function setUiLanguage(language) {
         if (!response.ok) throw new Error();
       })
       .catch(() => {
-        if (typeof toast === 'function') toast('表示言語を保存できませんでした。');
+        if (typeof toast === 'function') toast('Could not save the language preference.');
       });
   }
 }

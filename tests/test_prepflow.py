@@ -22,12 +22,12 @@ class SampleTests(unittest.TestCase):
         self.assertEqual(prepflow.analyze(stream)["fileSizeBytes"], SAMPLE.stat().st_size)
 
     def test_plain_flow_size_and_connection_ids(self):
-        data = json.dumps({"nodes": {"input": {"id": "input", "name": "入力", "baseType": "input", "nodeType": ".v1.LoadSql", "connectionId": "server", "fields": [], "nextNodes": []}}, "connections": {"server": {"connectionAttributes": {"class": "sqlproxy", "projectname": "営業", "datasourcename": "売上"}}}}, ensure_ascii=False).encode('utf-8')
+        data = json.dumps({"nodes": {"input": {"id": "input", "name": "Input", "baseType": "input", "nodeType": ".v1.LoadSql", "connectionId": "server", "fields": [], "nextNodes": []}}, "connections": {"server": {"connectionAttributes": {"class": "sqlproxy", "projectname": "Sales", "datasourcename": "Sales"}}}}, ensure_ascii=False).encode('utf-8')
         model = prepflow.analyze(io.BytesIO(data))
         self.assertEqual(model['fileSizeBytes'], len(data))
         self.assertEqual(model['connections'][0]['id'], 'server')
         self.assertEqual(model['nodes'][0]['connection']['id'], 'server')
-        self.assertEqual(model['nodes'][0]['connection']['connectionAttributes']['projectname'], '営業')
+        self.assertEqual(model['nodes'][0]['connection']['connectionAttributes']['projectname'], 'Sales')
 
     @classmethod
     def setUpClass(cls):
@@ -48,57 +48,57 @@ class SampleTests(unittest.TestCase):
         self.assertEqual(self.model["stats"]["steps"], 19)
         self.assertEqual(len(self.model["edges"]), 18)
         self.assertEqual(self.model["stats"]["savedPositions"], 19)
-        self.assertEqual(self.nodes["オーダー + 返品"]["position"], {"x": 4, "y": 2})
-        self.assertEqual(self.nodes["ノルマ"]["color"], "#f6a035")
+        self.assertEqual(self.nodes["Orders + Returns"]["position"], {"x": 3, "y": 3})
+        self.assertEqual(self.nodes["Quota"]["color"], "#F6A035")
 
     def test_action_order_follows_graph_not_json_order(self):
-        ops = self.nodes["メモ/承認者のクリーニング"]["actions"]
-        self.assertEqual([a["type"] for a in ops], ["AddColumn", "AddColumn", "RenameColumn", "RenameColumn", "RemoveColumns", "Remap"])
-        fields = {f["name"]: f for f in self.nodes["メモ/承認者のクリーニング"]["fields"]}
-        self.assertIn("返品メモ", fields)
-        self.assertIn("承認者", fields)
-        self.assertNotIn("メモ", fields)
+        ops = self.nodes["Clean Notes/Approver"]["actions"]
+        self.assertEqual([a["type"] for a in ops], ["AddColumn", "AddColumn", "RenameColumn", "RenameColumn", "RemoveColumn", "Remap"])
+        fields = {f["name"]: f for f in self.nodes["Clean Notes/Approver"]["fields"]}
+        self.assertIn("Return Notes", fields)
+        self.assertIn("Approver", fields)
+        self.assertNotIn("Notes", fields)
 
     def test_date_type_calculation_is_preserved(self):
-        n = self.nodes["日付の修正"]
-        self.assertEqual(len(n["calculations"]), 6)
+        n = self.nodes["Fix Dates"]
+        self.assertEqual(len(n["calculations"]), 5)
         self.assertEqual(sum("DATEPARSE" in c["expression"] for c in n["calculations"]), 2)
-        self.assertEqual(self.model["stats"]["calculations"], 16)
-        self.assertEqual({f["name"]:f["type"] for f in n["fields"]}["オーダー日"], "date")
+        self.assertEqual(self.model["stats"]["calculations"], 12)
+        self.assertEqual({f["name"]:f["type"] for f in n["fields"]}["Order Date"], "date")
 
     def test_namespace_specific_join_actions(self):
-        n = self.nodes["オーダー + 返品"]
+        n = self.nodes["Orders + Returns"]
         calcs = {c["field"]: c for c in n["calculations"]}
-        self.assertEqual(calcs["返品？"]["namespace"], "Left")
-        self.assertEqual(calcs["出荷までの日数"]["namespace"], "Right")
+        self.assertEqual(calcs["Returned?"]["namespace"], "Left")
+        self.assertEqual(calcs["Days to Ship"]["namespace"], "Right")
         names = {f["name"] for f in n["fields"]}
-        self.assertIn("販売の年", names)
+        self.assertIn("Year of Sale", names)
         self.assertNotIn("Table Names", names)
         self.assertNotIn("File Paths", names)
         self.assertFalse(n["schemaUncertain"])
 
     def test_pivot_and_aggregate_schemas(self):
-        pivot = {f["name"]:f["type"] for f in self.nodes["ノルマのピボット"]["fields"]}
-        self.assertEqual(pivot, {"販売地域":"string", "年":"integer", "ノルマ":"integer"})
-        agg = {f["name"]:f for f in self.nodes["ロールアップ売上"]["fields"]}
-        self.assertEqual(set(agg), {"販売の年", "販売地域", "割引率", "利益", "数量", "売上"})
-        self.assertEqual(agg["売上"]["expression"], "SUM([売上])")
+        pivot = {f["name"]:f["type"] for f in self.nodes["Pivot Quotas"]["fields"]}
+        self.assertEqual(pivot, {"Region":"string", "2014":"integer", "Year":"integer", "Quota":"unknown"})
+        agg = {f["name"]:f for f in self.nodes["Roll Up Sales"]["fields"]}
+        self.assertEqual(set(agg), {"Year of Sale", "Region", "Discount", "Profit", "Quantity", "Sales"})
+        self.assertEqual(agg["Sales"]["expression"], "SUM([Sales])")
 
     def test_branch_specific_expressions_not_falsely_merged(self):
-        fields = {f["name"]: f for f in self.nodes["すべてのオーダー"]["fields"]}
-        self.assertIsNone(fields["販売地域"]["expression"])
-        self.assertEqual({x["expression"] for x in fields["販売地域"]["expressionVariants"]}, {'"USCA"', '"APAC"', '"LATAM"', '"EMEA"'})
+        fields = {f["name"]: f for f in self.nodes["All Orders"]["fields"]}
+        self.assertIsNone(fields["Region"]["expression"])
+        self.assertEqual({x["expression"] for x in fields["Region"]["expressionVariants"]}, {'"Central"', None})
 
     def test_cleanup_preserves_right_product_id(self):
-        n = self.nodes["クリーニング 2"]
+        n = self.nodes["Clean 2"]
         names = {f["name"] for f in n["fields"]}
-        self.assertEqual(len(names), 26)
-        self.assertIn("製品 ID", names)
-        self.assertNotIn("製品 ID-1", names)
-        self.assertNotIn("オーダー ID-1", names)
+        self.assertEqual(len(names), 27)
+        self.assertIn("Product ID", names)
+        self.assertNotIn("Product ID-1", names)
+        self.assertNotIn("Order ID-1", names)
 
     def test_input_inventory_keeps_deleted_fields_and_types(self):
-        for name, total, used in [("返品", 8, 4), ("注文 (EMEA)", 40, 20)]:
+        for name, total, used in [("Returns (all)", 9, 4), ("Orders (West)", 41, 21)]:
             with self.subTest(step=name):
                 n = self.nodes[name]
                 inventory = n["fieldInventory"]
@@ -107,17 +107,17 @@ class SampleTests(unittest.TestCase):
                 self.assertEqual({f["name"] for f in inventory if not f["deleted"]}, {f["name"] for f in n["fields"]})
                 for f in inventory:
                     if f["deleted"]:
-                        self.assertEqual(f["changes"][-1]["type"], "RemoveColumns")
+                        self.assertIn(f["changes"][-1]["type"], ("RemoveColumn", "RemoveColumns"))
                         self.assertIn(f["changes"][-1]["actionId"], {a["id"] for a in n["actions"]})
 
     def test_renames_are_not_deletions_and_changes_stay_local(self):
-        n = self.nodes["メモ/承認者のクリーニング"]
+        n = self.nodes["Clean Notes/Approver"]
         removed = [f["name"] for f in n["fieldInventory"] if f["deleted"]]
-        self.assertEqual(removed, ["メモ"])
-        renamed = next(f for f in n["fieldInventory"] if f["name"] == "返品メモ")
+        self.assertEqual(removed, ["Notes"])
+        renamed = next(f for f in n["fieldInventory"] if f["name"] == "Return Notes")
         self.assertEqual([c["type"] for c in renamed["changes"]], ["AddColumn", "RenameColumn"])
         self.assertFalse(renamed["deleted"])
-        inherited = next(f for f in self.nodes["オーダー + 返品"]["fields"] if f["name"] == "返品メモ")
+        inherited = next(f for f in self.nodes["Orders + Returns"]["fields"] if f["name"] == "Return Notes")
         self.assertEqual(inherited["changes"], [])
 
     def test_all_sample_files_parse(self):

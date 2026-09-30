@@ -28,7 +28,7 @@ CANCELLED = 0x800704C7
 
 def checked(result):
     if result < 0:
-        raise OSError(f'Windowsの選択画面でエラーが発生しました（0x{result & 0xffffffff:08X}）。')
+        raise OSError(f'Windows file picker failed (0x{result & 0xffffffff:08X}).')
     return result
 
 

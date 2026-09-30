@@ -1,4 +1,4 @@
-// 画面イベントの登録と起動。assets.json の最後に読み込む。
+// Register interface events and start the application. Loaded last in assets.json.
 
 document.addEventListener('click', (e) => {
   const overview = e.target.closest('[data-overview-tab]');
@@ -19,7 +19,7 @@ document.addEventListener('click', (e) => {
     const wrap = unfold.closest('.formula-wrap'),
       expanded = wrap.classList.toggle('full-formula');
     unfold.setAttribute('aria-expanded', String(expanded));
-    unfold.title = expanded ? ui('計算式を折りたたむ') : ui('計算式を展開');
+    unfold.title = expanded ? ui('Collapse formula') : ui('Expand formula');
     unfold.setAttribute('aria-label', unfold.title);
     updateFormulaPreviews();
     return;

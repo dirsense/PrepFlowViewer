@@ -59,7 +59,7 @@ class ExplorerWorker:
                     raise RuntimeError('Explorer was not activated')
             except (OSError, ValueError, RuntimeError, queue.Empty) as exc:
                 self.close()
-                raise RuntimeError('保存場所を前面に表示できませんでした。もう一度お試しください。') from exc
+                raise RuntimeError('Could not bring the saved location to the foreground. Try again.') from exc
 
     def warm(self):
         def prepare():

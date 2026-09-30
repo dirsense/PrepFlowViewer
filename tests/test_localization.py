@@ -17,11 +17,11 @@ from prepflow import empty_model, render_html
 
 class LocalizationTests(unittest.TestCase):
     def tearDown(self):
-        set_language('ja')
+        set_language('en')
 
     def test_export_is_self_contained_and_preserves_model(self):
         model = empty_model()
-        model['name'] = '計算フィールド</script>.tfl'
+        model['name'] = 'Calculated field</script>.tfl'
         before = json.dumps(model, ensure_ascii=False)
         set_language('en')
         html = render_html(model)
@@ -33,7 +33,7 @@ class LocalizationTests(unittest.TestCase):
         self.assertIn('const UI_CATALOGS = ', html)
         self.assertIn('function setUiLanguage(', html)
         self.assertIn('id="language-button"', html)
-        self.assertNotIn('計算フィールド</script>.tfl', html)
+        self.assertNotIn('Calculated field</script>.tfl', html)
         self.assertEqual(json.dumps(model, ensure_ascii=False), before)
         self.assertIn('data-language="ja"', self._japanese_html(model))
 
@@ -67,9 +67,9 @@ class LocalizationTests(unittest.TestCase):
     def test_contexts_do_not_share_language(self):
         set_language('en')
         with ThreadPoolExecutor(max_workers=1) as executor:
-            self.assertEqual(executor.submit(language.get).result(), 'ja')
-        self.assertEqual(translate('計算フィールド'), 'Calculated field')
-        self.assertEqual(translate('日本語のファイル名'), '日本語のファイル名')
+            self.assertEqual(executor.submit(language.get).result(), 'en')
+        self.assertEqual(translate('Calculated field'), 'Calculated field')
+        self.assertEqual(translate('Untranslated user file name'), 'Untranslated user file name')
 
     def test_all_catalogs_and_native_labels(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -79,7 +79,7 @@ class LocalizationTests(unittest.TestCase):
                 self.assertEqual(LanguagePreference(preference.path).get(), locale)
                 set_language(locale)
                 catalog = translation_catalog(locale)
-                self.assertEqual(translate('フローを開く'), catalog.get('フローを開く', 'フローを開く'))
+                self.assertEqual(translate('Open flow'), catalog.get('Open flow', 'Open flow'))
                 if locale == 'ja':
                     continue
                 self.assertEqual(catalog.keys(), english_catalog().keys())
@@ -126,7 +126,7 @@ class LocalizationTests(unittest.TestCase):
         import native_dialogs
         set_language('en')
         with patch.object(native_dialogs, '_choose_windows', return_value=None) as chooser:
-            native_dialogs.choose_file(title='フローを開く', directory='.', filetypes=[('フローファイル', '*.tfl;*.tflx')])
+            native_dialogs.choose_file(title='Open flow', directory='.', filetypes=[('Flow files', '*.tfl;*.tflx')])
         # Dialog titles are translated; system-owned controls use Windows language.
         self.assertIn('Open flow', str(chooser.call_args))
 

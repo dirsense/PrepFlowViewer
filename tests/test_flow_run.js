@@ -100,7 +100,7 @@ async function main() {
   now += 5000;
   ctx.updateRunClock();
   assert.equal(element('run-time').textContent, '00:00:10');
-  assert.equal(element('run-time-label').textContent, '経過時間');
+  assert.equal(element('run-time-label').textContent, 'Elapsed time');
   await ctx.startRun(['b']);
   assert.equal(calls.length, 1, 'must prevent simultaneous starts');
   ctx.fetch = async () => ({
@@ -117,20 +117,20 @@ async function main() {
   });
   await ctx.pollRun();
   assert.equal(ctx.busy, false);
-  assert.equal(element('run-status').textContent, '実行失敗');
+  assert.equal(element('run-status').textContent, 'Execution failed');
   assert.equal(element('run-time').textContent, '00:01:05');
   now += 120000;
   ctx.updateRunClock();
   assert.equal(element('run-time').textContent, '00:01:05', 'finished duration must stay frozen');
-  assert.equal(element('run-time-label').textContent, '所要時間');
+  assert.equal(element('run-time-label').textContent, 'Duration');
   assert.equal(element('run-spinner').hidden, true);
   assert.equal(element('run-log').children[0].textContent, '12:01  failed');
   ctx.fetch = async () => ({
     ok: false,
-    json: async () => ({ error: '元ファイルが変更されています' }),
+    json: async () => ({ error: 'The source file has changed' }),
   });
   await ctx.startRun(['a', 'b']);
-  assert.match(element('run-progress-error').textContent, /元ファイル/);
+  assert.match(element('run-progress-error').textContent, /source file/);
   assert.equal(ctx.busy, false);
   ctx.fetch = async () => {
     throw Error('response lost');
@@ -165,7 +165,7 @@ async function main() {
   );
   assert.deepEqual(calls[1].outputs, ['a', 'b']);
   assert.equal(ctx.busy, false);
-  assert.equal(element('run-status').textContent, '実行完了');
+  assert.equal(element('run-status').textContent, 'Execution completed');
   assert.match(element('run-outputs').innerHTML, /a.csv/);
   state(
     "runState.job={requestId:'cancel-request',running:true,state:'running',outputs,logs:[],elapsedMs:10000};runState.running=true",
@@ -188,7 +188,7 @@ async function main() {
     };
   };
   await ctx.cancelRun();
-  assert.equal(element('run-status').textContent, 'キャンセルしました');
+  assert.equal(element('run-status').textContent, 'Cancelled');
   assert.equal(element('run-time').textContent, '00:00:12');
   assert.equal(element('run-cancel').hidden, true);
   assert.equal(element('run-progress-done').hidden, false);

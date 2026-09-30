@@ -1,4 +1,4 @@
-/* 基本設定。後半の追加ルールも含め、定義順で既存の上書きを維持する。 */
+/* Base styles. Preserve source order and later overrides. */
 :root {
   font-family: 'Segoe UI', 'Yu Gothic UI', Meiryo, sans-serif;
   color: #273e50;
@@ -42,7 +42,7 @@ summary:focus-visible,
 [hidden] {
   display: none !important;
 }
-/* ヘッダーとファイル操作 */
+/* Header and file controls */
 .app-header {
   height: 56px;
   flex-shrink: 0;
@@ -135,7 +135,7 @@ summary:focus-visible,
 .button:hover {
   filter: brightness(0.94);
 }
-/* 左右のパネル、フローマップ */
+/* Panels and flow diagram */
 .workspace {
   display: flex;
   flex: 1;
@@ -221,7 +221,7 @@ summary:focus-visible,
   border-radius: 4px;
   color: #247f9c;
 }
-/* ステップの詳細、タブ、一覧 */
+/* Step details, tabs and lists */
 .detail-section {
   width: var(--detail-width);
   flex-shrink: 0;
@@ -611,7 +611,7 @@ summary:focus-visible,
   overflow-wrap: anywhere;
   max-width: 100%;
 }
-/* 計算式のインライン表示 */
+/* Inline formulas */
 .formula-wrap {
   position: relative;
   margin: 10px 0;
@@ -924,7 +924,7 @@ summary:focus-visible,
   z-index: 30;
   max-width: 90vw;
 }
-/* ダイアログ共通 */
+/* Shared dialog styles */
 dialog {
   border: 1px solid #d6e1e7;
   border-radius: 8px;
@@ -2025,7 +2025,7 @@ dialog::backdrop {
 #publish-dialog .dialog-heading h2 {
   font-size: 17px;
 }
-/* Tableau Server への認証・公開 */
+/* Tableau Server authentication and publishing */
 .publish-fields {
   display: grid;
   grid-template-columns: 115px minmax(0, 1fr);
@@ -2112,7 +2112,7 @@ dialog::backdrop {
   min-height: 72px;
 }
 
-/* フロー実行と進捗表示 */
+/* Flow execution and progress */
 #run-dialog {
   box-sizing: border-box;
   width: 850px;

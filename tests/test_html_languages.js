@@ -6,9 +6,10 @@ function create(languages, showSwitcher, defaultLanguage = languages[0]) {
   return vm.createContext({
     UI_EXPORT_OPTIONS: { languages, showSwitcher, defaultLanguage },
     UI_CATALOGS: Object.fromEntries(
-      languages
-        .filter((l) => l !== 'ja')
-        .map((l) => [l, JSON.parse(fs.readFileSync(require.resolve(`../web/${l}.json`), 'utf8'))]),
+      languages.map((l) => [
+        l,
+        JSON.parse(fs.readFileSync(require.resolve(`../web/${l}.json`), 'utf8')),
+      ]),
     ),
     document: {
       documentElement: { dataset: {}, lang: 'ja' },
@@ -24,13 +25,13 @@ function create(languages, showSwitcher, defaultLanguage = languages[0]) {
   });
 }
 for (const [languages, expected] of [
-  [['ja'], 'フィールドを削除'],
+  [['ja'], JSON.parse(fs.readFileSync(require.resolve('../web/ja.json'), 'utf8'))['Remove fields']],
   [['fr'], 'Supprimer les champs'],
   [['es'], 'Eliminar campos'],
 ]) {
   const context = create(languages, false);
   assert.equal(vm.runInContext('uiLanguage', context), languages[0]);
-  assert.equal(context.ui('フィールドを削除'), expected);
+  assert.equal(context.ui('Remove fields'), expected);
   context.setUiLanguage('en');
   assert.equal(
     vm.runInContext('uiLanguage', context),
@@ -55,10 +56,7 @@ assert.equal(
   'en',
   'HTML preference must not change desktop preference',
 );
-assert.equal(
-  create(['fr', 'es'], true).uiMessage('1件のフローを追加しました。'),
-  '1 flux ajoutés.',
-);
+assert.equal(create(['fr', 'es'], true).uiMessage('Added 1 flows.'), '1 flux ajoutés.');
 console.log(
   'Exported HTML languages: Japanese-only, non-English catalogs, fixed/default locale and switch persistence passed.',
 );

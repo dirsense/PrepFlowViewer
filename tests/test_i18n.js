@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('./ui-test-context.cjs');
 const storage = new Map();
+const japanese = JSON.parse(fs.readFileSync(require.resolve('../web/ja.json'), 'utf8'));
 const context = vm.createContext({
   document: {
     documentElement: { dataset: {}, lang: 'ja' },
@@ -67,8 +68,8 @@ assert.equal(
   'ja',
   'first desktop visit uses environment, not another browser preference',
 );
-run("const labels=uiLabels({field:'計算フィールド'});");
-assert.equal(context.ui('計算フィールド'), '計算フィールド');
+run("const labels=uiLabels({field:'Calculated field'});");
+assert.equal(context.ui('Calculated field'), 'Calculated field');
 context.setUiLanguage('en');
 assert.equal(context.document.documentElement.lang, 'en');
 assert.equal(storage.get('prepflow.language'), 'en');
@@ -79,25 +80,25 @@ assert.equal(
   'unknown keys cannot resolve prototype properties',
 );
 assert.equal(
-  run('ui`<h3>計算フィールド</h3><p>${"日本語の売上"}</p>`'),
+  run('ui`<h3>Calculated field</h3><p>${"日本語の売上"}</p>`'),
   '<h3>Calculated field</h3><p>日本語の売上</p>',
 );
 assert.equal(
-  run('ui`<button title="変更を確定">${"変更を確定"}</button>`'),
-  '<button title="Confirm changes">変更を確定</button>',
+  run('ui`<button title="Confirm changes">${"Confirm changes"}</button>`'),
+  '<button title="Confirm changes">Confirm changes</button>',
   'interpolated user values stay verbatim even when identical to UI labels',
 );
-assert.equal(run('ui`${"売上.tflx"} を保存しました`'), 'Saved 売上.tflx');
-assert.equal(context.uiMessage('売上.tflx を保存しました'), 'Saved 売上.tflx');
+assert.equal(run('ui`Saved ${"Sales.tflx"}`'), 'Saved Sales.tflx');
+assert.equal(context.uiMessage('Saved Sales.tflx'), 'Saved Sales.tflx');
 const element = { isConnected: true, closest: () => null };
-context.uiBind(element, 'textContent', () => context.ui('計算フィールド'));
+context.uiBind(element, 'textContent', () => context.ui('Calculated field'));
 assert.equal(element.textContent, 'Calculated field');
 context.setUiLanguage('ja');
-assert.equal(element.textContent, '計算フィールド');
-assert.equal(run('labels.field'), '計算フィールド');
+assert.equal(element.textContent, japanese['Calculated field']);
+assert.equal(run('labels.field'), japanese['Calculated field']);
 assert.equal(
-  context.uiMessage('Saved 売上.tflx'),
-  '売上.tflx を保存しました',
+  context.uiMessage('Saved Sales.tflx'),
+  japanese['Saved {{0}}'].replace('{{0}}', 'Sales.tflx'),
   'an existing message switches back too',
 );
 context.setUiLanguage('xx');
@@ -108,18 +109,18 @@ assert.equal(run('uiBindings.size'), 0, 'detached bindings are released');
 
 // Static text and attributes are captured once, before flow data is inserted.
 const initial = {
-  nodeValue: '変更を確定',
+  nodeValue: 'Confirm changes',
   isConnected: true,
   parentElement: { closest: () => null },
 };
 const dynamic = {
-  nodeValue: '計算フィールド',
+  nodeValue: 'Calculated field',
   isConnected: true,
   parentElement: { closest: () => null },
 };
 const attribute = {
   isConnected: true,
-  value: '変更を確定',
+  value: 'Confirm changes',
   getAttribute: (n) => (n === 'title' ? attribute.value : null),
   setAttribute: (n, v) => {
     attribute.value = v;
@@ -136,9 +137,9 @@ nodes.push(dynamic);
 context.uiRefresh();
 assert.equal(initial.nodeValue, 'Confirm changes');
 assert.equal(attribute.value, 'Confirm changes');
-assert.equal(dynamic.nodeValue, '計算フィールド');
+assert.equal(dynamic.nodeValue, 'Calculated field');
 context.setUiLanguage('ja');
-assert.equal(initial.nodeValue, '変更を確定');
+assert.equal(initial.nodeValue, japanese['Confirm changes']);
 
 // Placeholders cannot disappear or get renumbered in translations.
 const slots = (text) => [...new Set(text.match(/\{\{\d+\}\}/g) || [])].sort();
@@ -156,24 +157,27 @@ for (const [locale, label] of Object.entries(expectedNames)) {
   for (const [key, value] of Object.entries(catalog))
     assert.deepEqual(slots(value), slots(key), `${locale}: ${key}`);
   context.setUiLanguage(locale);
-  assert.equal(context.ui('計算フィールド'), label);
+  assert.equal(context.ui('Calculated field'), label);
   assert.equal(context.document.documentElement.lang, locale);
   assert.equal(storage.get('prepflow.language'), locale);
   assert.equal(
-    run('ui`<h3>計算フィールド</h3><p>${"日本語の売上"}</p>`'),
+    run('ui`<h3>Calculated field</h3><p>${"日本語の売上"}</p>`'),
     `<h3>${label}</h3><p>日本語の売上</p>`,
   );
   assert.equal(
-    context.uiMessage('売上.tflx を保存しました'),
-    catalog['{{0}} を保存しました'].replace('{{0}}', '売上.tflx'),
+    context.uiMessage('Saved Sales.tflx'),
+    catalog['Saved {{0}}'].replace('{{0}}', 'Sales.tflx'),
   );
   assert.equal(
-    context.uiMessage('パブリッシュ中: C:/売上.tflx'),
-    catalog['パブリッシュ中: '] + 'C:/売上.tflx',
+    context.uiMessage('Publishing: C:/Sales.tflx'),
+    catalog['Publishing: '] + 'C:/Sales.tflx',
   );
-  const translated = run('ui`${"売上.tflx"} を保存しました`');
+  const translated = run('ui`Saved ${"Sales.tflx"}`');
   context.setUiLanguage('ja');
-  assert.equal(context.uiMessage(translated), '売上.tflx を保存しました');
+  assert.equal(
+    context.uiMessage(translated),
+    japanese['Saved {{0}}'].replace('{{0}}', 'Sales.tflx'),
+  );
 }
 (async () => {
   context.fetch = async (url, options) => {

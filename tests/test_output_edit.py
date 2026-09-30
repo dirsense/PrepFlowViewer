@@ -126,7 +126,7 @@ class OutputEditTests(unittest.TestCase):
                 self.assertEqual(resolve.call_args.args[2], 'Parent/Child')
                 tsc.Server.return_value.flows.publish.assert_not_called()
             tsc.reset_mock()
-            with self.assertRaisesRegex(ValueError, '認証情報'):
+            with self.assertRaisesRegex(ValueError, 'credentials'):
                 lookup_project('https://different.example.com', 'Child', settings, tsc=tsc)
             tsc.Server.assert_not_called()
             tsc.Server.side_effect = RuntimeError('error secret-test')

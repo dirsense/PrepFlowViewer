@@ -1,11 +1,11 @@
-// フローを開く、履歴、ドロップ、HTML 出力。
+// Open flows, recent files, drag and drop, and HTML export.
 
 function syncRecentPicker() {
   $('recent-picker').hidden = !CAN_EDIT;
   $('file-name').hidden = CAN_EDIT;
   if (!CAN_EDIT) return;
   uiBind($('recent-name'), 'textContent', () =>
-    DATA.nodes.length ? DATA.name : ui('フローを開いてください'),
+    DATA.nodes.length ? DATA.name : ui('Open a flow'),
   );
   $('recent-path').textContent = DATA.sourcePath || '';
   $('recent-toggle').title = DATA.sourcePath || DATA.name;
@@ -16,7 +16,7 @@ function syncRecentPicker() {
             `<button role="menuitem" data-recent-id="${esc(f.id)}" title="${esc(f.path)}"${f.id === DATA.recentId ? ' aria-current="true"' : ''}><span class="recent-item-name">${esc(f.name)}</span><span class="recent-path">${esc(f.path)}</span></button>`,
         )
         .join('')
-    : ui('<p class="recent-empty">最近開いたフローはありません</p>');
+    : ui('<p class="recent-empty">No recent flows</p>');
 }
 
 function closeRecent(restore = false) {
@@ -51,7 +51,7 @@ async function refreshRecent() {
     recentFiles = result.recent;
     syncRecentPicker();
   } catch {
-    toast(ui('最近のフローを取得できませんでした。サーバーの起動状態を確認してください。'));
+    toast(ui('Could not retrieve recent flows. Check that the server is running.'));
   }
 }
 
@@ -84,11 +84,11 @@ async function loadRecent(id) {
       body: JSON.stringify({ id }),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || ui('フローを読み込めませんでした。'));
+    if (!response.ok) throw new Error(result.error || ui('Could not load flow.'));
     init(cached?.model || result);
-    toast(ui`${DATA.name} に切り替えました`);
+    toast(ui`Switched to ${DATA.name}`);
   } catch (error) {
-    showFileError(error.message || ui('切り替えに失敗しました。'));
+    showFileError(error.message || ui('Could not switch flows.'));
   } finally {
     endFlowLoad();
   }
@@ -97,11 +97,11 @@ async function loadRecent(id) {
 async function loadFile(file) {
   if (!file) return;
   if (!SERVER.token) {
-    toast(ui('別のフローは「start_viewer.cmd」から開いてください。'));
+    toast(ui('Use start_viewer.cmd to open another flow.'));
     return;
   }
   if (!/\.(tflx|tfl)$/i.test(file.name)) {
-    toast(ui('.tflx または .tfl ファイルを選択してください。'));
+    toast(ui('Select a .tflx or .tfl file.'));
     return;
   }
   if (!beginFlowLoad()) return;
@@ -116,11 +116,11 @@ async function loadFile(file) {
       body: file,
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || ui('ファイルを読み込めませんでした。'));
+    if (!res.ok) throw new Error(data.error || ui('Could not load file.'));
     init(data);
-    toast(ui`${file.name} を読み込みました`);
+    toast(ui`Loaded ${file.name}`);
   } catch (e) {
-    toast(e.message || ui('読み込みに失敗しました。'));
+    toast(e.message || ui('Loading failed.'));
   } finally {
     endFlowLoad();
     $('file-input').value = '';
@@ -141,7 +141,7 @@ function finishNativeFlowDrop(model, error) {
       return;
     }
     init(model);
-    toast(ui`${model.name} を読み込みました`);
+    toast(ui`Loaded ${model.name}`);
   } finally {
     endFlowLoad();
   }
@@ -164,7 +164,7 @@ async function openFlowFile() {
       body: '{}',
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || ui('フローを開けませんでした。'));
+    if (!response.ok) throw new Error(result.error || ui('Could not open flow.'));
     if (!result.cancelled) init(result);
   } catch (error) {
     toast(error.message);
@@ -192,7 +192,7 @@ async function exportHtml() {
   renderHtmlExport();
   setFlowEditBusy(true);
   $('html-single-error').hidden = true;
-  uiBind($('html-single-status'), 'textContent', () => ui('出力先を選択中…'));
+  uiBind($('html-single-status'), 'textContent', () => ui('Choosing destination…'));
   try {
     const response = await uiFetch('/api/save-html', {
       method: 'POST',
@@ -200,11 +200,11 @@ async function exportHtml() {
       body: JSON.stringify(payload),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || ui('HTMLを出力できませんでした。'));
+    if (!response.ok) throw new Error(result.error || ui('Could not export HTML.'));
     uiBind($('html-single-status'), 'textContent', () =>
-      result.cancelled ? '' : ui`${result.name} を出力しました`,
+      result.cancelled ? '' : ui`Exported ${result.name}`,
     );
-    if (!result.cancelled) toast(ui`${result.name} を出力しました`);
+    if (!result.cancelled) toast(ui`Exported ${result.name}`);
   } catch (error) {
     $('html-single-status').textContent = '';
     uiBind($('html-single-error'), 'textContent', () => uiMessage(error.message));

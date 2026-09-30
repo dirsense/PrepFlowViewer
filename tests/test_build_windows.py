@@ -15,7 +15,7 @@ class PublicArchiveTests(unittest.TestCase):
         self.dist = root / 'dist'
         self.package.mkdir()
         for name in ('PrepFlowViewer_v1.0.exe', '_internal/python313.dll',
-                     '_internal/web/assets.json', '操作ガイド.html', 'manual.en.html', 'はじめに.txt',
+                     '_internal/web/assets.json', 'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt',
                      'publish.example.ini', 'Python-LICENSE.txt', 'licenses/dependency/LICENSE'):
             file = self.package / name
             file.parent.mkdir(parents=True, exist_ok=True)
@@ -29,7 +29,7 @@ class PublicArchiveTests(unittest.TestCase):
         with zipfile.ZipFile(result) as archive:
             names = archive.namelist()
             for name in ('PrepFlowViewer_v1.0.exe', '_internal/python313.dll',
-                         '_internal/web/assets.json', '操作ガイド.html', 'manual.en.html', 'はじめに.txt',
+                         '_internal/web/assets.json', 'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt',
                          'publish.example.ini', 'Python-LICENSE.txt', 'licenses/dependency/LICENSE'):
                 self.assertIn('PrepFlowViewer/' + name, names)
             self.assertFalse(any(info.flag_bits & 1 for info in archive.infolist()))
@@ -47,7 +47,7 @@ class PublicArchiveTests(unittest.TestCase):
     def test_missing_guide_keeps_previous_archive_intact(self):
         result = public_archive(self.package, self.dist, '1.0')
         previous = result.read_bytes()
-        (self.package / '操作ガイド.html').unlink()
+        (self.package / 'manual.html').unlink()
         with self.assertRaises(RuntimeError):
             public_archive(self.package, self.dist, '1.0')
         self.assertEqual(result.read_bytes(), previous)

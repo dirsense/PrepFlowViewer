@@ -41,7 +41,7 @@ class HtmlSaveTests(unittest.TestCase):
                     result = post('/api/save-html', payload)
                     self.assertEqual(result['path'], str(target))
                     self.assertEqual(picker.call_args.kwargs['filename'], '日本語.html')
-                    self.assertEqual(picker.call_args.kwargs['filetypes'], [('HTML ファイル', '*.html')])
+                    self.assertEqual(picker.call_args.kwargs['filetypes'], [('HTML files', '*.html')])
                     html = target.read_text(encoding='utf-8')
                     saved = json.loads(re.search(r'<script id="flow-data" type="application/json">(.*?)</script>', html, re.S)[1])
                     self.assertEqual(saved['nodes'], edited['nodes'])

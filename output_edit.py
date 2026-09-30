@@ -25,7 +25,7 @@ def output_format(node):
     for name, (node_type, _, _) in FORMATS.items():
         if kind == node_type.split('.')[-1]:
             return name
-    raise ValueError('この出力形式の編集には対応していません。')
+    raise ValueError('Editing this output format is not supported.')
 
 
 def configuration(node):
@@ -49,7 +49,7 @@ def server_url(value):
     value = value.strip().rstrip('/')
     url = urlsplit(value)
     if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password or url.query or url.fragment:
-        raise ValueError('Server URLを http:// または https:// から入力してください。')
+        raise ValueError('Enter a server URL starting with http:// or https://.')
     return value
 
 
@@ -65,17 +65,17 @@ def edited_node(node, properties, desired):
     old_kind = output_format(node)
     kind = desired.get('format')
     if kind not in FORMATS:
-        raise ValueError('出力タイプを選択してください。')
+        raise ValueError('Select an output type.')
     for key in ('name', 'folder', 'sheet', 'server', 'project', 'projectId'):
         if not isinstance(desired.get(key, ''), str) or len(desired.get(key, '')) > 8192:
-            raise ValueError('出力設定の形式が正しくありません。')
+            raise ValueError('Invalid output settings format.')
     name = desired.get('name', '').strip()
     if not name or any(ord(c) < 32 for c in name):
-        raise ValueError('出力名を入力してください。')
+        raise ValueError('Enter an output name.')
     options = refresh_options(properties, old_kind)
     if kind == 'csv' and (options['outputOperationType'] != 'outputOperationTypeCreate' or
                          options.get('isIncrementalDefault')):
-        raise ValueError('現在の書き込みオプションを維持したままCSVへ変更できません。CSVはテーブルの作成のみ対応します。')
+        raise ValueError('Cannot switch to CSV while preserving the current write options. CSV supports Create table only.')
     result, result_props = copy.deepcopy(node), copy.deepcopy(properties)
     if kind != old_kind:
         for key in DESTINATION_KEYS:
@@ -89,9 +89,9 @@ def edited_node(node, properties, desired):
         project = desired.get('project', '').strip().strip('/')
         project_id = desired.get('projectId', '').strip()
         if not project or not project_id or any(not level.strip() for level in project.split('/')):
-            raise ValueError('プロジェクトを確認してから変更を確定してください。')
+            raise ValueError('Verify the project before confirming changes.')
         if old_kind == 'server' and any(node.get(k) not in (None, '', 'Default') for k in ('siteName', 'siteContentUrl', 'siteUrl', 'siteId', 'siteLuid')):
-            raise ValueError('既定サイト以外へのServer出力は編集できません。')
+            raise ValueError('Server outputs outside the default site cannot be edited.')
         # Keep the verified hierarchy for display and subsequent project lookups.
         result.update(serverUrl=server_url(desired.get('server', '')), projectName=project,
                       projectLuid=project_id, datasourceName=name)
@@ -99,10 +99,10 @@ def edited_node(node, properties, desired):
     else:
         # Names are filenames; separators belong in the separate folder field.
         if re.search(r'[<>:"/\\|?*]', name) or name.endswith(('.', ' ')) or re.match(r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)', name, re.I):
-            raise ValueError('ファイル名に使用できない文字が含まれています。')
+            raise ValueError('The file name contains invalid characters.')
         folder = desired.get('folder', '').strip()
         if any(ord(c) < 32 for c in folder):
-            raise ValueError('出力パスを確認してください。')
+            raise ValueError('Check the output path.')
         _, key, extension = FORMATS[kind]
         # The name field has no extension; the selected type determines it.
         filename = name + extension
@@ -118,7 +118,7 @@ def edited_node(node, properties, desired):
             if sheet.startswith('[') and sheet.endswith('$]'):
                 sheet = sheet[1:-2]
             if not sheet or len(sheet) > 31 or re.search(r'[\\/?*\[\]:]', sheet):
-                raise ValueError('Excelシート名は31文字以内で、\\ / ? * [ ] : を含めずに入力してください。')
+                raise ValueError('Excel sheet names must contain at most 31 characters and cannot include \\ / ? * [ ] :.')
             result['excelOutputSheetName'] = '[' + sheet + '$]'
     return result, result_props
 
@@ -132,10 +132,10 @@ def make_change(node, properties, desired):
 def apply_output_change(flow, change):
     node = flow.get('nodes', {}).get(change.get('stepId'))
     if not node or node.get('baseType') != 'output':
-        raise ValueError('編集する出力ステップが見つかりません。')
+        raise ValueError('The output step to edit was not found.')
     properties = flow.get('nodeProperties', {}).get(change['stepId'], {})
     if node != change.get('before') or properties != change.get('beforeProperties'):
-        raise ValueError('出力設定が更新されています。開き直してから編集してください。')
+        raise ValueError('Output settings have changed. Reopen them before editing.')
     result, result_props = edited_node(node, properties, change.get('destination', {}))
     flow['nodes'][change['stepId']] = result
     if result_props != properties:
@@ -148,7 +148,7 @@ def lookup_project(url, path, settings, *, tsc=None):
     values = settings.load()
     url = server_url(url)
     if not values.get('server_url') or server_url(values['server_url']).casefold() != url.casefold():
-        raise ValueError('このServer URLの認証情報がありません。パブリッシュ画面でトークンを入力し、認証テストを行ってください。')
+        raise ValueError('No credentials for this server URL. Enter a token in the Publish dialog and test authentication.')
     values = credentials(values)
     if tsc is None:
         import tableauserverclient as tsc

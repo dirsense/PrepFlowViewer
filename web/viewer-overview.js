@@ -1,8 +1,8 @@
-// フロー情報、接続元のまとめ、使い方。
+// Flow overview, connection summary and help.
 
 function formatFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes < 0) return '—';
-  if (bytes < 1024) return ui`${Math.floor(bytes)} バイト`;
+  if (bytes < 1024) return ui`${Math.floor(bytes)} bytes`;
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let index = 1,
     value = bytes / 1024;
@@ -34,7 +34,7 @@ function connectionInfo(connection = {}, node) {
     }
     return '';
   };
-  const type = value('class') || connection.connectionType || ui('不明');
+  const type = value('class') || connection.connectionType || ui('Unknown');
   const server = value('server', 'serverurl', 'serveraddress', 'hostname', 'host'),
     file = value('filename');
   const datasource = value('datasourcename'),
@@ -101,7 +101,7 @@ function connectionGroups(model) {
     if (!groups.has(key))
       groups.set(key, {
         info,
-        title: info.server || info.file || info.name || ui('接続元の情報なし'),
+        title: info.server || info.file || info.name || ui('No connection source information'),
         entries: [],
         steps: 0,
       });
@@ -115,15 +115,15 @@ function connectionGroups(model) {
 function connectionFields(info, node) {
   if (info.tableau)
     return {
-      サーバー: info.server || ui('フローに情報なし'),
-      プロジェクト名: info.project || ui('フローに情報なし'),
-      データソース名: info.datasource || ui('フローに情報なし'),
+      Server: info.server || ui('Not recorded in flow'),
+      'Project name': info.project || ui('Not recorded in flow'),
+      'Data source name': info.datasource || ui('Not recorded in flow'),
     };
   return {
-    データソース名: info.datasource || null,
-    プロジェクト名: info.project || null,
-    データベース: info.database || null,
-    テーブル: node?.raw?.relation?.table || node?.raw?.attributes?.tablename || null,
+    'Data source name': info.datasource || null,
+    'Project name': info.project || null,
+    Database: info.database || null,
+    Table: node?.raw?.relation?.table || node?.raw?.attributes?.tablename || null,
   };
 }
 
@@ -133,21 +133,21 @@ function tableauConnectionHtml(info) {
 
 function connectionsHtml() {
   const groups = connectionGroups(DATA);
-  if (!groups.length) return ui('<p class="overview-note">接続情報はありません。</p>');
-  return ui`<p class="overview-note">接続元を開くと、使用している入力ステップを確認できます。</p>${groups.map((group) => ui`<details class="connection-group"><summary><span class="connection-source"><strong>${esc(group.title)}</strong><small>${esc(group.info.label)} · 入力ステップ ${group.steps} 件</small></span></summary><div class="connection-steps">${group.entries.map((entry) => (entry.nodes.length ? entry.nodes.map((node) => ui`<section class="connection-step"><h3>${esc(node.name)}</h3>${keyValues(connectionFields(connectionInfo(entry.connection, node), node))}<button class="button" data-connection-step="${esc(node.id)}">ステップの接続設定を表示</button></section>`).join('') : ui`<section class="connection-step"><h3>${esc(entry.info.name || ui('接続定義'))}</h3>${keyValues(connectionFields(entry.info))}<p class="overview-note">使用している入力ステップはありません。</p></section>`)).join('')}</div></details>`).join('')}`;
+  if (!groups.length) return ui('<p class="overview-note">No connections.</p>');
+  return ui`<p class="overview-note">Expand a connection source to see its input steps.</p>${groups.map((group) => ui`<details class="connection-group"><summary><span class="connection-source"><strong>${esc(group.title)}</strong><small>${esc(group.info.label)} · ${group.steps} input steps</small></span></summary><div class="connection-steps">${group.entries.map((entry) => (entry.nodes.length ? entry.nodes.map((node) => ui`<section class="connection-step"><h3>${esc(node.name)}</h3>${keyValues(connectionFields(connectionInfo(entry.connection, node), node))}<button class="button" data-connection-step="${esc(node.id)}">View step connection settings</button></section>`).join('') : ui`<section class="connection-step"><h3>${esc(entry.info.name || ui('Connection definition'))}</h3>${keyValues(connectionFields(entry.info))}<p class="overview-note">No input steps use this connection.</p></section>`)).join('')}</div></details>`).join('')}`;
 }
 
 function overviewHelpHtml() {
-  return ui`<div class="overview-help"><h3>フローを見る</h3><ul><li>ステップをクリックすると詳細を表示します。同じステップをもう一度押すか、マップの空白を押すとフロー情報へ戻ります。</li><li>ホイールで拡大・縮小、ドラッグで移動できます。</li><li>空白のダブルクリック、または上部の全体表示アイコンで、フロー全体を表示します。</li><li>全体表示中は右ペインの幅に合わせて自動調整します。手動で拡大・移動した後は倍率と位置を維持します。</li></ul><h3>処理・計算式を確認する</h3><ul><li>「フィールド一覧」「変更内容」「設定」を切り替えて確認します。検索でフィールドや加工を絞り込めます。</li><li>計算式は拡大表示で「原文」と「自動整形」を切り替えられます。コピーや対応する括弧の強調も使えます。</li></ul>${CAN_EDIT ? ui('<h3>編集・保存・共有する</h3><ul><li>計算式を編集したら「変更を確定」。この段階ではViewer内だけに反映します。</li><li>上部のUndo / Redoで確定した変更を戻せます。ダウンロードアイコンの「フローを保存」でTFL / TFLXへ保存します。</li><li>「HTMLを出力」で対応言語を選び、「単一出力」または「一括出力」タブから書き出します。</li><li>上部のパブリッシュアイコンからTableau Serverへ公開できます。PC上のフロー保存とは別の操作です。</li><li>出力ステップの「出力先を編集」から、ファイル形式・名前・保存先、またはTableau Serverへの出力に変更できます。Serverは既定サイトのプロジェクトを認証して確認します。書き込みオプションは変更できません。×で閉じると未確定の変更を破棄します。</li><li>三角の実行アイコンから、出力名・保存先を確認して個別実行・すべて実行できます。実行にはTableau Prep Builderが必要で、出力先の実データを更新します。進捗は実行ログで確認できます。</li></ul>') : ui('<h3>このHTMLについて</h3><p>閲覧専用です。計算式の編集・フローの保存・ServerへのパブリッシュはViewer本体で行います。</p>')}<p class="overview-note">データソースには接続せず、フローに保存された定義を表示しています。</p></div>`;
+  return ui`<div class="overview-help"><h3>Explore the flow</h3><ul><li>Click a step to see details. Click it again or click a blank area of the diagram to return to flow information.</li><li>Scroll to zoom and drag to pan.</li><li>Double-click a blank area or use the fit icon in the toolbar to show the entire flow.</li><li>Fit mode adjusts automatically when the details panel is resized. Manual zooming or panning preserves your view.</li></ul><h3>Inspect transformations and formulas</h3><ul><li>Switch between Fields, Changes and Settings. Use search to filter fields and transformations.</li><li>Open a formula to switch between Original and Formatted views. You can copy formulas and highlight matching brackets.</li></ul>${CAN_EDIT ? ui('<h3>Edit, save and share</h3><ul><li>After editing a formula, select Confirm changes. At this point, changes apply only within the Viewer.</li><li>Use Undo / Redo in the toolbar for confirmed edits. Select Save flow from the download icon to save as TFL / TFLX.</li><li>Choose languages in Export HTML, then export from the Single export or Batch export tab.</li><li>Use the publish icon to publish to Tableau Server. This is separate from saving a flow on your PC.</li><li>Select Edit output destination on an output step to change its file format, name, folder or Tableau Server destination. Server projects are verified on the default site using your credentials. Write options are read-only. Closing with × discards unconfirmed edits.</li><li>Use the play icon to review destinations and run individual outputs or all outputs. Running requires Tableau Prep Builder and updates actual destination data. Track progress in the execution log.</li></ul>') : ui('<h3>About this HTML</h3><p>This file is read-only. Use the Viewer application to edit formulas, save flows and publish to Server.</p>')}<p class="overview-note">Displays definitions saved in the flow without connecting to data sources.</p></div>`;
 }
 
 function renderFlowInfo(container) {
   const source = DATA.sourcePath || '',
     folder = source.slice(0, Math.max(source.lastIndexOf('/'), source.lastIndexOf('\\')) + 1);
   container.innerHTML = ui`<div class="meta-stats">${[
-    [ui('ステップ'), DATA.stats.steps],
-    [ui('加工'), DATA.stats.actions],
-    [ui('計算式'), DATA.stats.calculations],
+    [ui('Steps'), DATA.stats.steps],
+    [ui('Transformations'), DATA.stats.actions],
+    [ui('Formula'), DATA.stats.calculations],
   ]
     .map(
       ([label, value]) =>
@@ -155,14 +155,14 @@ function renderFlowInfo(container) {
     )
     .join(
       '',
-    )}</div>${keyValues({ ファイル: DATA.name, 保存場所: CAN_EDIT ? folder || ui('未確定（フローを保存すると表示されます）') : null, ファイルサイズ: formatFileSize(DATA.fileSizeBytes), 定義の解析時間: DATA.stats.parseMs + ' ms', 保存座標: DATA.stats.savedPositions + ui(' ステップ'), フロー形式バージョン: DATA.formatVersion, 解析: ui('Python / 接続・実データの読込なし') })}<p>flow の処理定義と displaySettings の配置・色を表示しています。フィールド一覧は静的に復元したもので、実行結果ではありません。推定箇所や未対応の加工は各ステップに注記します。</p>${DATA.warnings.map((w) => `<p class="warning">${esc(uiMessage(w))}</p>`).join('')}<details class="raw-details"><summary>パッケージ内のファイル一覧（データは未読込）</summary><pre class="raw-pre">${esc(DATA.entries.map((e) => `${e.name}  (${e.bytes.toLocaleString()} bytes)`).join('\n'))}</pre></details><details class="raw-details"><summary>パラメーター</summary><pre class="raw-pre">${esc(json(DATA.parameters))}</pre></details><details class="raw-details"><summary>maestroMetadata</summary><pre class="raw-pre">${esc(json(DATA.metadata))}</pre></details>`;
+    )}</div>${keyValues({ File: DATA.name, 'Saved location': CAN_EDIT ? folder || ui('Not yet set (shown after saving the flow)') : null, 'File size': formatFileSize(DATA.fileSizeBytes), 'Definition parsing time': DATA.stats.parseMs + ' ms', 'Saved positions': DATA.stats.savedPositions + ui(' steps'), 'Flow format version': DATA.formatVersion, Analysis: ui('Python / No connections or data loading') })}<p>Shows transformations from flow and layout/colors from displaySettings. Fields are reconstructed statically, not from execution results. Each step notes estimates and unsupported transformations.</p>${DATA.warnings.map((w) => `<p class="warning">${esc(uiMessage(w))}</p>`).join('')}<details class="raw-details"><summary>Packaged files (data not loaded)</summary><pre class="raw-pre">${esc(DATA.entries.map((e) => `${e.name}  (${e.bytes.toLocaleString()} bytes)`).join('\n'))}</pre></details><details class="raw-details"><summary>Parameters</summary><pre class="raw-pre">${esc(json(DATA.parameters))}</pre></details><details class="raw-details"><summary>maestroMetadata</summary><pre class="raw-pre">${esc(json(DATA.metadata))}</pre></details>`;
   if (folder && SERVER.token) {
     const cell = container.querySelector('.kv dd:nth-of-type(2)'),
       button = document.createElement('button');
     cell.classList.add('flow-location');
     button.className = 'button folder-open';
     button.id = 'open-source-folder-panel';
-    uiBind(button, 'textContent', () => ui('保存場所を開く'));
+    uiBind(button, 'textContent', () => ui('Open saved location'));
     button.onclick = async () => {
       button.disabled = true;
       cell.querySelector('.folder-error')?.remove();
@@ -173,7 +173,7 @@ function renderFlowInfo(container) {
           body: JSON.stringify({ exportKey: DATA.exportKey }),
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || ui('保存場所を開けませんでした。'));
+        if (!response.ok) throw new Error(result.error || ui('Could not open saved location.'));
       } catch (error) {
         const message = document.createElement('p');
         message.className = 'folder-error';

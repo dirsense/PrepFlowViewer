@@ -81,7 +81,7 @@ class PublishServerTests(unittest.TestCase):
                     self.assertIn('<script id="server-config" type="application/json">{}</script>',exported)
                     self.assertNotIn('TEST_SECRET_ONLY',exported)
                     self.assertIn('id="publish-button" title=',exported)
-                    self.assertIn('aria-label="Tableau Serverへパブリッシュ" hidden',exported)
+                    self.assertIn('aria-label="Publish to Tableau Server" hidden',exported)
                 finally:
                     server.shutdown()
                     thread.join(timeout=5)

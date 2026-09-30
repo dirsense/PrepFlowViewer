@@ -3,12 +3,13 @@ from PIL import Image, ImageDraw, ImageFont
 import argparse, json, math, subprocess
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description='Build README media from actual application captures.')
-parser.add_argument('--language', choices=('ja', 'en'), default='ja')
+parser.add_argument('--language', choices=('ja', 'en'), default='en')
 parser.add_argument('--format', choices=('gif', 'mp4'), default='gif')
 args=parser.parse_args()
+captions=json.loads((ROOT/'tools/demo-captions.jp.json').read_text(encoding='utf-8'))
 english=args.language=='en'
-suffix='-en' if english else ''
-WORK=ROOT/('output/readme-demo'+suffix)
+suffix='' if english else '-jp'
+WORK=ROOT/('output/readme-demo-en' if english else 'output/readme-demo')
 OUT=ROOT/'docs/media'
 OUT.mkdir(parents=True,exist_ok=True)
 shots=json.loads((WORK/'timeline.json').read_text(encoding='utf-8'))
@@ -41,8 +42,8 @@ def compose(idx,shot,zoom=1,pulse=0,progress=0):
  canvas=Image.new('RGB',(W,H),'#f2f6f8');canvas.paste(shotim,(0,TOP));d=ImageDraw.Draw(canvas)
  d.rectangle((0,0,W,TOP),fill='#173544');d.rounded_rectangle((20,21,53,54),radius=8,fill='#2f9296');d.text((29,23),'▶',font=small,fill='white')
  label=shot['label'];d.text((68,20),label,font=bold,fill='white')
- d.rectangle((0,TOP+SCREEN_H,W,H),fill='#173544');d.text((20,H-29),'PrepFlow Viewer  |  Windows walkthrough' if english else 'PrepFlow Viewer  |  Windows版 操作デモ',font=small,fill='#d6e6ed')
- d.text((958,H-29),'Explore · Edit · Share' if english else '見る・編集する・共有する',font=small,fill='#d6e6ed')
+ d.rectangle((0,TOP+SCREEN_H,W,H),fill='#173544');d.text((20,H-29),'PrepFlow Viewer  |  Windows walkthrough' if english else captions['caption0'],font=small,fill='#d6e6ed')
+ d.text((958,H-29),'Explore · Edit · Share' if english else captions['caption1'],font=small,fill='#d6e6ed')
  d.rectangle((0,H-4,int(W*progress),H),fill='#39b4ab')
  r=shot.get('rect')
  if r and r['width']<240 and r['height']<140 and pulse:
@@ -57,9 +58,9 @@ poster=compose(1,shots[1],0,0,0)
 overlay=Image.new('RGBA',poster.size,(0,0,0,0));od=ImageDraw.Draw(overlay)
 od.rounded_rectangle((100,220,1180,532),radius=20,fill=(21,51,65,242))
 od.text((152,254),'PrepFlow Viewer',font=ImageFont.truetype(BOLD,34),fill='#6fe0d0')
-od.text((152,314),'Understand your flow at a glance.' if english else 'フローを瞬時に把握する。',font=ImageFont.truetype(BOLD,43 if english else 54),fill='white')
-od.text((155,405),'Explore, edit and share — in one walkthrough.' if english else '閲覧から編集・HTML共有まで、主要操作を1本で。',font=ImageFont.truetype(FONT,26),fill='#e1edf1')
-od.text((155,460),'Inspect your flow without loading source data.' if english else 'データの読み込みなしで、フローの中身を確認。',font=ImageFont.truetype(FONT,24),fill='#c0d7df')
+od.text((152,314),'Understand your flow at a glance.' if english else captions['caption2'],font=ImageFont.truetype(BOLD,43 if english else 54),fill='white')
+od.text((155,405),'Explore, edit and share — in one walkthrough.' if english else captions['caption3'],font=ImageFont.truetype(FONT,26),fill='#e1edf1')
+od.text((155,460),'Inspect your flow without loading source data.' if english else captions['caption4'],font=ImageFont.truetype(FONT,24),fill='#c0d7df')
 poster=Image.alpha_composite(poster.convert('RGBA'),overlay).convert('RGB');poster.save(OUT/f'readme-demo{suffix}-poster.png')
 frames.append(poster);durations.append(1900)
 for pos,idx in enumerate(order):

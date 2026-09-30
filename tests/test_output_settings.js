@@ -21,25 +21,25 @@ let html = context.outputSettingsHtml(
   }),
 );
 for (const value of [
-  'サーバー',
+  'Server',
   'https://tableau.example.invalid',
-  'サイト',
+  'Site',
   'Default',
-  'プロジェクト',
+  'Project',
   'Sales / Reports',
   'Sales mart',
-  'テーブルの作成',
+  'Create table',
 ])
   assert.ok(html.includes(value), value);
-assert.ok(html.indexOf('サーバー') < html.indexOf('プロジェクト'));
-assert.ok(html.indexOf('プロジェクト') < html.indexOf('<dt>名前'));
+assert.ok(html.indexOf('Server') < html.indexOf('Project'));
+assert.ok(html.indexOf('Project') < html.indexOf('<dt>Name'));
 html = context.outputSettingsHtml(
   output({ serverUrl: 'https://tableau.example.invalid', projectName: 'Sales' }),
 );
-assert.ok(!html.includes('<dt>サイト'), 'do not invent a site when absent');
+assert.ok(!html.includes('<dt>Site'), 'do not invent a site when absent');
 html = context.outputSettingsHtml(output({ siteContentUrl: '' }));
 assert.ok(html.includes('Default'));
-assert.equal((html.match(/フローに情報なし/g) || []).length, 2, 'missing metadata is explicit');
+assert.equal((html.match(/Not recorded in flow/g) || []).length, 2, 'missing metadata is explicit');
 html = context.outputSettingsHtml(
   output({
     serverUrl: '<script>bad()</script>',
@@ -75,8 +75,8 @@ for (const [type, key, extension] of [
   });
   assert.ok(html.includes('C:\\exports'));
   assert.ok(html.includes('<dd>Sales</dd>'));
-  assert.ok(!html.includes('<dt>サーバー'));
-  assert.ok(!html.includes('<dt>プロジェクト'));
+  assert.ok(!html.includes('<dt>Server'));
+  assert.ok(!html.includes('<dt>Project'));
 }
 console.log(
   'Output settings: published destination, missing metadata, escaping and file outputs passed.',

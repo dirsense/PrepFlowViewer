@@ -8,8 +8,8 @@ from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path
 
-language = ContextVar('viewer_language', default='ja')
-SUPPORTED_LANGUAGES = ('ja', 'en', 'fr', 'es', 'de', 'pt-BR')
+language = ContextVar('viewer_language', default='en')
+SUPPORTED_LANGUAGES = ('en', 'ja', 'fr', 'es', 'de', 'pt-BR')
 
 
 def normalize_language(value):
@@ -39,8 +39,6 @@ def preferred_language(accept_language=''):
 
 @lru_cache(maxsize=6)
 def translation_catalog(locale):
-    if locale == 'ja':
-        return {}
     if locale not in SUPPORTED_LANGUAGES:
         raise ValueError('Unsupported language')
     root = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))

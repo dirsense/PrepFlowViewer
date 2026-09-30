@@ -30,24 +30,24 @@ class HtmlExportOptionsTests(unittest.TestCase):
         model['name'] = 'English</script>日本語.tfl'
         original = copy.deepcopy(model)
         sizes = []
-        for languages, switcher in [(['ja'], False), (['fr'], False), (['ja', 'en'], True)]:
+        for languages, switcher in [(['ja'], False), (['fr'], False), (['en', 'ja'], True)]:
             options = {'languages': languages, 'showSwitcher': switcher, 'defaultLanguage': languages[0]}
             page = render_html(model, options)
-            self.assertEqual(set(catalogs(page)), set(languages) - {'ja'})
+            self.assertEqual(set(catalogs(page)), set(languages))
             self.assertEqual(re.findall(r'<button role="menuitemradio" data-language="([^"]+)"', page), languages)
             self.assertEqual('class="language-picker" hidden' in page, not switcher)
             self.assertIn(f'<html lang="{languages[0]}"', page)
             self.assertEqual(embedded_json(page, 'flow-data'), model)
             sizes.append(len(page.encode()))
-        self.assertLess(sizes[0], sizes[1])
+        self.assertLess(sizes[0], sizes[2])
         self.assertEqual(model, original)
 
     def test_validation_single_multiple_default_and_invalid_selections(self):
         set_language('es')
         self.assertEqual(html_export_options(None), {'languages': ['es'], 'defaultLanguage': 'es', 'showSwitcher': False})
-        self.assertEqual(html_export_options({'languages': ['ja', 'en'], 'showSwitcher': True})['defaultLanguage'], 'ja')
+        self.assertEqual(html_export_options({'languages': ['en', 'ja'], 'showSwitcher': True})['defaultLanguage'], 'en')
         for options in [[], {}, {'languages': []}, {'languages': ['xx']}, {'languages': [['en']]},
-                        {'languages': ['ja', 'en'], 'showSwitcher': False},
+                        {'languages': ['en', 'ja'], 'showSwitcher': False},
                         {'languages': ['ja'], 'showSwitcher': 'true'}]:
             with self.subTest(options=options), self.assertRaises(ValueError):
                 html_export_options(options)

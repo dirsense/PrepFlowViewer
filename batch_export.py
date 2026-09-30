@@ -23,7 +23,7 @@ class BatchExport:
                 key = next((k for k, item in self.files.items() if item['path'] == path), None)
                 if key is None:
                     if len(self.files) >= 4096:
-                        raise ValueError('一度に追加できるのは4,096ファイルまでです。リストをクリアしてください。')
+                        raise ValueError('You can add up to 4,096 files at a time. Clear the list first.')
                     key = secrets.token_urlsafe(24)
                     self.files[key] = {'path': path, 'name': path.name, 'temporary': False}
                 items.append(self.describe(key))
@@ -32,7 +32,7 @@ class BatchExport:
     def describe(self, key):
         item = self.files[key]
         return {'id': key, 'name': item['name'],
-                'location': 'ドロップしたファイル' if item['temporary'] else str(item['path'].parent)}
+                'location': 'Dropped file' if item['temporary'] else str(item['path'].parent)}
 
     def folder(self, folder, recursive=True):
         def report_error(error):
@@ -46,18 +46,18 @@ class BatchExport:
                 if Path(name).suffix.lower() in {'.tfl', '.tflx'}:
                     paths.append(Path(directory) / name)
                     if len(paths) > 4096:
-                        raise ValueError('4,096ファイルを超えています。対象フォルダーを絞ってください。')
+                        raise ValueError('More than 4,096 files found. Select a smaller folder.')
         return self.add(paths)
 
     def upload(self, stream, length, filename):
         name = filename.replace('\\', '/').rsplit('/', 1)[-1]
         if not name or Path(name).suffix.lower() not in {'.tfl', '.tflx'}:
-            raise ValueError('.tflx または .tfl を選択してください。')
+            raise ValueError('Select a .tflx or .tfl file.')
         if not 0 < length <= 2 * 1024**3:
-            raise ValueError('空のファイル、または2GBを超えるファイルは追加できません。')
+            raise ValueError('Cannot add empty files or files larger than 2 GB.')
         with self.lock:
             if len(self.files) >= 4096:
-                raise ValueError('一度に追加できるのは4,096ファイルまでです。')
+                raise ValueError('You can add up to 4,096 files at a time.')
             key = secrets.token_urlsafe(24)
             path = self.temporary / (key + Path(name).suffix.lower())
             try:
@@ -65,7 +65,7 @@ class BatchExport:
                     while length:
                         chunk = stream.read(min(length, 1024**2))
                         if not chunk:
-                            raise ValueError('ファイルの受信が途中で終了しました。')
+                            raise ValueError('File transfer ended unexpectedly.')
                         output.write(chunk)
                         length -= len(chunk)
                 self.files[key] = {'path': path, 'name': name, 'temporary': True}
@@ -84,7 +84,7 @@ class BatchExport:
     def destination(self, folder):
         folder = Path(folder).resolve()
         if not folder.is_dir():
-            raise ValueError('保存先フォルダーが見つかりません。')
+            raise ValueError('Destination folder not found.')
         with self.lock:
             key = secrets.token_urlsafe(24)
             self.destinations[key] = folder
@@ -95,7 +95,7 @@ class BatchExport:
         with self.lock:
             item = self.files.get(key)
             if item is None:
-                raise ValueError('対象ファイルと保存先を選び直してください。')
+                raise ValueError('Select the files and destination again.')
             with item['path'].open('rb') as source:
                 model = analyze(source, filename=item['name'])
             if not item['temporary']:
@@ -109,7 +109,7 @@ class BatchExport:
             item = self.files.get(key)
             folder = self.destinations.get(destination)
             if item is None or folder is None:
-                raise ValueError('対象ファイルと保存先を選び直してください。')
+                raise ValueError('Select the files and destination again.')
             model = self.model(key)
             html = render_html(model, html_export_options(html_options))
             name = Path(item['name']).stem + '.html'

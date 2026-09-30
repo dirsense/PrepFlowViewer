@@ -1,4 +1,4 @@
-// 計算式の表示と編集ダイアログ。入力中の履歴は確定済みのフロー履歴と分けて管理する。
+// Formula preview and editing. Draft history is separate from confirmed flow history.
 
 function syntax(expr) {
   return tokenizeFormula(expr)
@@ -9,7 +9,7 @@ function syntax(expr) {
 }
 
 function expressionHtml(expr, origin = null) {
-  return ui`<div class="formula-wrap"><button class="formula-unfold" title="計算式を展開" aria-label="計算式を展開" aria-expanded="false" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 7 6 6 6-6"/></svg></button><button class="formula-expand" data-formula="${esc(encodeURIComponent(expr))}" data-formula-origin="${esc(encodeURIComponent(JSON.stringify(origin)))}" title="計算式を拡大表示" aria-label="計算式を拡大表示" aria-haspopup="dialog"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H3v13h13v-5"/></svg></button><button class="copy-button" data-copy="${esc(encodeURIComponent(expr))}" title="計算式をコピー" aria-label="計算式をコピー"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 12H3V3h9v4M8 8h9v9H8z"/></svg></button><pre class="code"><span class="formula-preview-text">${syntax(expr)}</span></pre></div>`;
+  return ui`<div class="formula-wrap"><button class="formula-unfold" title="Expand formula" aria-label="Expand formula" aria-expanded="false" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 7 6 6 6-6"/></svg></button><button class="formula-expand" data-formula="${esc(encodeURIComponent(expr))}" data-formula-origin="${esc(encodeURIComponent(JSON.stringify(origin)))}" title="Open formula editor" aria-label="Open formula editor" aria-haspopup="dialog"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M8 4H3v13h13v-5"/></svg></button><button class="copy-button" data-copy="${esc(encodeURIComponent(expr))}" title="Copy formula" aria-label="Copy formula"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 12H3V3h9v4M8 8h9v9H8z"/></svg></button><pre class="code"><span class="formula-preview-text">${syntax(expr)}</span></pre></div>`;
 }
 
 function updateFormulaPreviews() {
@@ -39,7 +39,7 @@ function formulaPopupSyntax(source) {
         if (pairs.has(start + i)) {
           text +=
             esc(token.text.slice(segment, i)) +
-            ui`<span class="formula-bracket" data-bracket="${start + i}" data-match="${pairs.get(start + i)}" aria-label="${esc(token.text[i])}：対応する括弧を強調" aria-pressed="false">${esc(token.text[i])}</span>`;
+            ui`<span class="formula-bracket" data-bracket="${start + i}" data-match="${pairs.get(start + i)}" aria-label="${esc(token.text[i])}: highlight matching bracket" aria-pressed="false">${esc(token.text[i])}</span>`;
           segment = i + 1;
         }
       text += esc(token.text.slice(segment));
@@ -143,7 +143,7 @@ function configureFormulaEditor() {
   const editor = $('formula-full');
   editor.contentEditable = CAN_EDIT && !flowEditBusy ? 'plaintext-only' : 'false';
   editor.setAttribute('role', CAN_EDIT ? 'textbox' : 'region');
-  editor.setAttribute('aria-label', CAN_EDIT ? ui('計算式を編集') : ui('計算式'));
+  editor.setAttribute('aria-label', CAN_EDIT ? ui('Edit formula') : ui('Formula'));
   if (CAN_EDIT) editor.setAttribute('aria-multiline', 'true');
   else editor.removeAttribute('aria-multiline');
 }
@@ -155,12 +155,12 @@ function updateFormulaEditButtons() {
   $('save-formula').hidden = !history.dirty;
   $('save-formula').disabled = flowEditBusy || !SERVER.token || !formulaPopup.origin;
   $('save-formula').title = !SERVER.token
-    ? ui('ファイルに保存するにはローカルビューアーから開いてください')
+    ? ui('Open in the local Viewer to save to a file')
     : !formulaPopup.origin
-      ? ui('この式の保存元を特定できません')
+      ? ui('Cannot identify the source of this formula')
       : '';
   uiBind($('save-formula'), 'textContent', () =>
-    formulaPopup.saving ? ui('確定中…') : ui('変更を確定'),
+    formulaPopup.saving ? ui('Confirming…') : ui('Confirm changes'),
   );
   $('close-formula').disabled = flowEditBusy;
   document.querySelectorAll('[data-formula-mode]').forEach((b) => (b.disabled = flowEditBusy));

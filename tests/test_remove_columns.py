@@ -29,11 +29,11 @@ class RemoveColumnTests(unittest.TestCase):
                 for field in deleted:
                     self.assertEqual(field['changes'][-1]['type'], kind)
                     self.assertEqual(field['changes'][-1]['actionId'], 'remove')
-                    self.assertEqual(field['changes'][-1]['label'], 'フィールドの削除')
+                    self.assertEqual(field['changes'][-1]['label'], 'Remove fields')
                 for step in (node, output):
                     self.assertFalse(set(expected) & {f['name'] for f in step['fields']})
                     self.assertFalse(step['warnings'])
-                self.assertEqual(node['actions'][0]['label'], 'フィールドの削除')
+                self.assertEqual(node['actions'][0]['label'], 'Remove fields')
                 self.assertEqual(source, original)
 
     def test_missing_singular_field_does_not_remove_unrelated_fields(self):

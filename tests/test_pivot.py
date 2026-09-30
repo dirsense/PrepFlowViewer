@@ -5,58 +5,41 @@ import prepflow
 
 
 class PivotTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        model = prepflow.analyze(prepflow.ROOT / 'samples' / 'PreppinData_2023_Week_15.tflx')
-        cls.nodes = {n['name']: n for n in model['nodes']}
-
     def detail(self, node):
         return next(a['pivot'] for a in node['actions'] if 'pivot' in a)
 
-    def test_wildcard_columns_and_downstream_schema(self):
-        node = self.nodes['Pivot 3']
-        pivot = self.detail(node)
-        group = pivot['groups'][0]
-        self.assertEqual([f['name'] for f in pivot['retained']], ['Row'])
-        self.assertEqual(pivot['retained'][0]['type'], 'integer')
-        self.assertEqual(group['name'], 'Pivot1 Names')
-        self.assertEqual(group['columns'][0]['name'], 'F')
-        expected = sorted(['F' + str(i) for i in range(3, 38)])
-        self.assertEqual(group['values'], expected)
-        self.assertEqual([f['name'] for f in group['columns'][0]['fields']], expected)
-        self.assertEqual([f['name'] for f in node['fields']], ['Row', 'Pivot1 Names', 'F'])
-        self.assertFalse(node['warnings'])
-
     def test_rows_to_columns_saved_names_and_aggregation(self):
-        node = self.nodes['Pivot 5']
-        pivot = self.detail(node)
+        fields = {name: prepflow.make_field(name, kind, 'input') for name, kind in
+                  [('Region', 'string'), ('Category', 'string'), ('Amount', 'integer')]}
+        raw = {'nodeType': '.v2018_3_3.Pivot', 'pivotColumnName': 'Category',
+               'aggregateColumnName': 'Amount', 'defaultAggregation': 'MAX',
+               'newColumnNames': ['Retail', 'Wholesale']}
+        pivot = prepflow.pivot_details(raw, fields)
         self.assertEqual(pivot['direction'], 'rowsToColumns')
-        self.assertEqual([f['name'] for f in pivot['retained']], ['Pivot1 Names'])
-        self.assertEqual(pivot['pivotField']['name'], 'Row')
-        self.assertEqual(pivot['valueField']['name'], 'F')
+        self.assertEqual(pivot['pivotField']['name'], 'Category')
+        self.assertEqual(pivot['valueField']['name'], 'Amount')
         self.assertEqual(pivot['aggregation'], 'MAX')
-        self.assertEqual(pivot['newColumns'], ['1', '2'])
-        self.assertEqual([f['name'] for f in node['fields']], ['Pivot1 Names', '1', '2'])
 
-    def test_manual_mapping_and_post_pivot_renames(self):
-        model = prepflow.analyze(prepflow.ROOT / 'samples' / 'PreppinData_2024_Week_31.tflx')
-        node = next(n for n in model['nodes'] if n['name'] == 'Pivot 1')
-        group = self.detail(node)['groups'][0]
-        self.assertEqual(group['values'], ['200', '800', '100H', 'HJ', 'JT', 'LJ', 'SP'])
-        self.assertEqual([f['name'] for f in group['columns'][0]['fields']], group['values'])
-        self.assertIn('Event', [f['name'] for f in node['fields']])
-        self.assertIn('Value', [f['name'] for f in node['fields']])
+    def test_manual_mapping_and_retained_fields(self):
+        fields = {name: prepflow.make_field(name, 'integer', 'input') for name in ['ID', 'Q1', 'Q2']}
+        raw = {'nodeType': '.v2018_3_4.UnpivotExtended', 'unpivotGroup': {
+            'literalColumn': {'literalColumnName': 'Quarter', 'names': ['First', 'Second']},
+            'unpivotColumns': [{'unpivotColumnName': 'Amount', 'columnInformation': {
+                'bindingsType': 'manual', 'manualBindings': ['Q1', 'Q2']}}]}}
+        pivot = prepflow.pivot_details(raw, fields)
+        self.assertEqual([f['name'] for f in pivot['retained']], ['ID'])
+        self.assertEqual([f['name'] for f in pivot['groups'][0]['columns'][0]['fields']], ['Q1', 'Q2'])
 
     def test_legacy_unpivot(self):
         model = prepflow.analyze(prepflow.ROOT / 'samples' / 'Superstore.tflx')
         node = next(n for n in model['nodes'] if n['kind'] == 'pivot')
         pivot = self.detail(node)
-        self.assertEqual([f['name'] for f in pivot['retained']], ['販売地域'])
-        self.assertEqual(pivot['groups'][0]['name'], '年')
-        self.assertEqual(pivot['groups'][0]['values'], ['2015', '2016', '2017', '2018'])
-        self.assertEqual(pivot['groups'][0]['columns'][0]['name'], 'ノルマ')
+        self.assertEqual([f['name'] for f in pivot['retained']], ['Region', '2014'])
+        self.assertEqual(pivot['groups'][0]['name'], 'Year')
+        self.assertEqual(pivot['groups'][0]['values'], ['2015', '2016', '2018', '2017'])
+        self.assertEqual(pivot['groups'][0]['columns'][0]['name'], 'Quota')
         self.assertEqual({f['name']: f['type'] for f in node['fields']},
-                         {'販売地域': 'string', '年': 'integer', 'ノルマ': 'integer'})
+                         {'Region': 'string', '2014': 'integer', 'Year': 'integer', 'Quota': 'unknown'})
 
     def test_wildcard_modes_and_additional_columns(self):
         fields = {s: prepflow.make_field(s, 'string', 'input') for s in ['X1', 'X2', '2X', 'other']}

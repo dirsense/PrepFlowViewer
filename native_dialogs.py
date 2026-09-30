@@ -27,7 +27,7 @@ def choose_file(*, title, directory, filename="", save=False, multiple=False, fi
                 return [Path(p).resolve() for p in value]
             return Path(value).resolve() if value else None
         except tk.TclError as exc:
-            raise RuntimeError("ファイル選択画面を開けませんでした。") from exc
+            raise RuntimeError("Could not open the file picker.") from exc
         finally:
             if window is not None:
                 window.destroy()

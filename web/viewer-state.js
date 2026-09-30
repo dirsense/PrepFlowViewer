@@ -1,4 +1,4 @@
-// 共有状態と小さな表示ユーティリティ。状態の所有範囲と読み込み順は web/README.md を参照。
+// Shared state and display utilities. See web/README.md for ownership and loading order.
 
 'use strict';
 
@@ -19,14 +19,14 @@ const esc = (value) =>
 const json = (value) => JSON.stringify(value, null, 2);
 
 const TYPE_NAMES = uiLabels({
-  string: '文字列',
-  integer: '整数',
-  real: '小数',
-  date: '日付',
-  datetime: '日時',
-  boolean: '真偽値',
-  unknown: '未確定',
-  spatial: '空間',
+  string: 'String',
+  integer: 'Integer',
+  real: 'Decimal',
+  date: 'Date',
+  datetime: 'Date and time',
+  boolean: 'Boolean',
+  unknown: 'Undetermined',
+  spatial: 'Spatial',
 });
 
 const TYPE_SYMBOL = {
@@ -39,9 +39,9 @@ const TYPE_SYMBOL = {
   unknown: '?',
 };
 
-const NS_NAMES = uiLabels({ Left: '左入力', Right: '右入力', Default: '共通' });
+const NS_NAMES = uiLabels({ Left: 'Left input', Right: 'Right input', Default: 'Default' });
 
-// ステップと詳細パネルの選択。初期化・切替は viewer-navigation.js で行う。
+// Step and detail-panel selection; initialized in viewer-navigation.js.
 let selected = null,
   activeTab = 'fields',
   fieldMode = 'all',
@@ -49,7 +49,7 @@ let selected = null,
 
 let overviewTab = 'info';
 
-// マップの配置と表示位置。倍率変更は元のフローファイルへ保存しない。
+// Map positions and viewport. Zoom changes do not modify the source flow.
 let byId = new Map(),
   positions = new Map(),
   scale = 1,
@@ -66,8 +66,8 @@ let recentFiles = [],
   loadingFlow = false,
   nativeDropReady = false;
 
-// フローを切り替えても確定済みの編集履歴を保持する。
-// 計算式ダイアログ内の未確定入力は viewer-formula.js の formulaDrafts に分離。
+// Preserve confirmed editing history when switching flows.
+// Unconfirmed formula drafts live in viewer-formula.js.
 const flowSessions = new Map();
 
 let flowSession,
@@ -111,7 +111,7 @@ function matchNode(n, q) {
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
-    toast(ui('コピーしました'));
+    toast(ui('Copied'));
   } catch {
     const t = document.createElement('textarea');
     t.value = text;
@@ -119,11 +119,7 @@ async function copyText(text) {
     t.select();
     const ok = document.execCommand('copy');
     t.remove();
-    toast(
-      ok
-        ? ui('コピーしました')
-        : ui('コピーできませんでした。テキストを選択してコピーしてください。'),
-    );
+    toast(ok ? ui('Copied') : ui('Could not copy. Select the text and copy it manually.'));
   }
 }
 

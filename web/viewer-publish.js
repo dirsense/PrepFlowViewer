@@ -1,4 +1,4 @@
-// Tableau Server への認証とパブリッシュ画面。
+// Tableau Server authentication and publishing.
 
 function publishLog(message, level = 'info') {
   const line = document.createElement('div');
@@ -12,7 +12,7 @@ function publishLog(message, level = 'info') {
 async function openPublish() {
   if (!CAN_EDIT || flowEditBusy || loadingFlow) return;
   if ([...formulaDrafts.values()].some((d) => d.dirty)) {
-    toast(ui('編集中の計算式を「変更を確定」してから開いてください。'));
+    toast(ui('Confirm your formula edits before opening this dialog.'));
     return;
   }
   $('publish-log').replaceChildren();
@@ -57,7 +57,7 @@ async function executePublish(publish) {
   if (publishBusy || !CAN_EDIT) return;
   if (!$('publish-form').reportValidity()) return;
   if (publish && (!$('publish-name').value.trim() || !$('publish-project').value.trim())) {
-    publishLog(ui('パブリッシュ名とパブリッシュ先を入力してください。'), 'error');
+    publishLog(ui('Enter a publish name and destination.'), 'error');
     return;
   }
   const payload = {
@@ -71,7 +71,7 @@ async function executePublish(publish) {
     changes: flowSession?.history.changes || [],
   };
   setPublishBusy(true);
-  publishLog(publish ? ui('パブリッシュを開始します。') : ui('認証テストを開始します。'));
+  publishLog(publish ? ui('Starting publication.') : ui('Starting authentication test.'));
   let finished = false;
   try {
     const response = await uiFetch(publish ? '/api/publish/start' : '/api/publish/test-auth', {
@@ -81,7 +81,7 @@ async function executePublish(publish) {
     });
     if (!response.ok) {
       const result = await response.json();
-      throw new Error(result.error || ui('処理を開始できませんでした。'));
+      throw new Error(result.error || ui('Could not start the operation.'));
     }
     const reader = response.body.getReader(),
       decoder = new TextDecoder();
@@ -104,7 +104,7 @@ async function executePublish(publish) {
     }
     if (pending) receive(pending);
     if (!finished)
-      throw new Error(ui('通信が途切れました。公開結果をサーバーで確認してください。'));
+      throw new Error(ui('Connection interrupted. Check the publication result on the server.'));
   } catch (error) {
     publishLog(error.message, 'error');
   } finally {

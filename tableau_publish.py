@@ -41,12 +41,12 @@ class PublishSettings:
 def credentials(payload):
     values = {key: payload.get(key, '') for key in ('server_url', 'token_name', 'token_value')}
     if any(not isinstance(v, str) or not v.strip() or len(v) > 8192 for v in values.values()):
-        raise ValueError('Server URL・トークン名・トークン値を入力してください。')
+        raise ValueError('Enter the server URL, token name and token secret.')
     values['server_url'] = values['server_url'].strip().rstrip('/')
     values['token_name'] = values['token_name'].strip()
     url = urlsplit(values['server_url'])
     if url.scheme not in ('https', 'http') or not url.hostname or url.username or url.password or url.query or url.fragment:
-        raise ValueError('Server URLには http:// または https:// から始まるサーバーのURLを入力してください。')
+        raise ValueError('Enter a server URL starting with http:// or https://.')
     return values
 
 
@@ -67,7 +67,7 @@ def project_default(package):
 def resolve_project(server, tsc, path, log):
     levels = path.strip().strip('/').split('/')
     if not levels or any(not level.strip() for level in levels):
-        raise ValueError('パブリッシュ先を「親プロジェクト/子プロジェクト」の形式で入力してください。')
+        raise ValueError('Enter the destination as Parent project/Child project.')
     parent = None
     for index, name in enumerate(levels):
         options = tsc.RequestOptions(pagesize=1000)
@@ -77,11 +77,11 @@ def resolve_project(server, tsc, path, log):
             options.filter.add(tsc.Filter(tsc.RequestOptions.Field.Name, tsc.RequestOptions.Operator.Equals, name))
         field = tsc.RequestOptions.Field.ParentProjectId if parent else tsc.RequestOptions.Field.TopLevelProject
         options.filter.add(tsc.Filter(field, tsc.RequestOptions.Operator.Equals, parent or 'true'))
-        log('公開先を検索中: ' + '/'.join(levels[:index + 1]))
+        log('Looking up destination: ' + '/'.join(levels[:index + 1]))
         matches = [p for p in tsc.Pager(server.projects, options)
                    if p.name == name and (p.parent_id or None) == parent]
         if len(matches) != 1:
-            raise ValueError('公開先を一意に特定できません（存在・閲覧権限・同名の階層を確認してください）: ' + '/'.join(levels[:index + 1]))
+            raise ValueError('Cannot uniquely identify the destination (check existence, access permissions and duplicate names): ' + '/'.join(levels[:index + 1]))
         parent = matches[0].id
     return parent
 
@@ -90,23 +90,23 @@ def run_publish(values, settings, log, *, source=None, name='', project='', tsc=
     """source=None tests authentication. Persist credentials only on success."""
     if tsc is None:
         import tableauserverclient as tsc
-    log('認証中…')
+    log('Authenticating…')
     server = tsc.Server(values['server_url'], use_server_version=True, http_options={'timeout': (15, 180)})
     auth = tsc.PersonalAccessTokenAuth(values['token_name'], values['token_value'], site_id='')
     with server.auth.sign_in(auth):
         if source is not None:
             project_id = resolve_project(server, tsc, project, log)
             item = tsc.FlowItem(project_id, name=name)
-            log('パブリッシュ中: ' + name + '（同名のフローは上書き）')
+            log('Publishing: ' + name + ' (overwrites a flow with the same name)')
             result = server.flows.publish(item, str(source), tsc.Server.PublishMode.Overwrite)
-            log('パブリッシュが完了しました。フローID: ' + str(result.id))
+            log('Publication completed. Flow ID: ' + str(result.id))
         else:
-            log('認証テストが完了しました。')
+            log('Authentication test completed.')
         try:
             settings.save(values)
-            log('認証情報を publish.ini に保存しました。')
+            log('Credentials saved to publish.ini.')
         except OSError:
-            log('処理は成功しましたが、publish.ini を保存できませんでした。ツールのフォルダーへの書き込み権限を確認してください。', 'warning')
+            log('The operation succeeded but publish.ini could not be saved. Check write permissions for the application folder.', 'warning')
 
 
 def safe_error(exc, values):

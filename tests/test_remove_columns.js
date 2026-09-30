@@ -13,7 +13,7 @@ const context = vm.createContext({
 });
 vm.runInContext(['actionHtml', 'fieldChanges'].map(definition).join('\n'), context);
 for (const [locale, title] of Object.entries({
-  ja: 'フィールドを削除',
+  ja: JSON.parse(fs.readFileSync(require.resolve('../web/ja.json'), 'utf8'))['Remove fields'],
   en: 'Remove fields',
   fr: 'Supprimer les champs',
   es: 'Eliminar campos',
@@ -25,7 +25,7 @@ for (const [locale, title] of Object.entries({
     const field = 'Order Year <売上>&';
     const raw =
       type === 'RemoveColumn' ? { columnName: field } : { columnNames: [field, 'Ship Year'] };
-    const action = { id: 'remove', type, label: 'フィールドの削除', expressions: [], raw };
+    const action = { id: 'remove', type, label: 'Remove fields', expressions: [], raw };
     const card = context.actionHtml(action, 0);
     assert.ok(card.includes(`<h3>${title}</h3>`), `${locale}: ${card}`);
     assert.ok(card.includes('<span class="chip">Order Year &lt;売上&gt;&amp;</span>'));
@@ -34,7 +34,7 @@ for (const [locale, title] of Object.entries({
     const badge = context.fieldChanges({
       name: field,
       deleted: true,
-      changes: [{ type, label: 'フィールドの削除', actionId: 'remove' }],
+      changes: [{ type, label: 'Remove fields', actionId: 'remove' }],
     });
     assert.equal((badge.match(/<button/g) || []).length, 1);
     assert.ok(badge.includes('change-icon removed'));

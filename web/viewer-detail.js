@@ -1,8 +1,8 @@
-// 右側パネルのフィールド一覧、変更内容、ステップ別設定。
+// Field lists, change cards and per-step settings in the details panel.
 
 function warningHtml(n) {
   return n.warnings.length
-    ? ui`<details class="warning"><summary>ⓘ フィールド復元の注記 (${n.warnings.length})</summary><ul>${n.warnings.map((w) => `<li>${esc(uiMessage(w))}</li>`).join('')}</ul></details>`
+    ? ui`<details class="warning"><summary>ⓘ Field reconstruction notes (${n.warnings.length})</summary><ul>${n.warnings.map((w) => `<li>${esc(uiMessage(w))}</li>`).join('')}</ul></details>`
     : '';
 }
 
@@ -29,33 +29,33 @@ function actionIcon(type, size = 17) {
 }
 
 function rawDetail(raw) {
-  return ui`<details class="raw-details"><summary>この処理の定義</summary><pre class="raw-pre">${esc(json(raw))}</pre></details>`;
+  return ui`<details class="raw-details"><summary>Operation definition</summary><pre class="raw-pre">${esc(json(raw))}</pre></details>`;
 }
 
 function fieldChanges(f) {
   const unique = [...new Map((f.changes || []).map((c) => [c.type, c])).values()];
   const isRemoval = (c) => c.type === 'RemoveColumn' || c.type === 'RemoveColumns';
   if (f.deleted && !unique.some(isRemoval))
-    unique.push({ type: 'RemoveColumns', label: ui('削除') });
+    unique.push({ type: 'RemoveColumns', label: ui('Removed') });
   return unique
     .map(
       (c) =>
-        `<button class="change-icon ${isRemoval(c) ? 'removed' : ''}" data-action-id="${esc(c.actionId || '')}" title="${esc(ui(c.label))}" aria-label="${esc(f.name + ': ' + ui(c.label))}">${actionIcon(c.type, 15)}${isRemoval(c) ? ui('<span>削除</span>') : ''}</button>`,
+        `<button class="change-icon ${isRemoval(c) ? 'removed' : ''}" data-action-id="${esc(c.actionId || '')}" title="${esc(ui(c.label))}" aria-label="${esc(f.name + ': ' + ui(c.label))}">${actionIcon(c.type, 15)}${isRemoval(c) ? ui('<span>Removed</span>') : ''}</button>`,
     )
     .join('');
 }
 
 function fieldDetailHtml(f) {
   let html = keyValues({
-    データ型:
+    'Data type':
       (TYPE_NAMES[f.type] || f.type) +
-      (f.typeSource !== '定義' ? ' (' + ui(f.typeSource) + ')' : ''),
-    由来: f.origin,
-    状態: f.deleted ? ui('このステップで削除') : ui('使用中'),
+      (f.typeSource !== 'Definition' ? ' (' + ui(f.typeSource) + ')' : ''),
+    Origin: f.origin,
+    Status: f.deleted ? ui('Removed in this step') : ui('In use'),
   });
   if (f.expression) html += expressionHtml(f.expression);
   if (f.expressionVariants?.some((v) => v.expression))
-    html += ui`<details class="raw-details"><summary>入力ごとの計算式</summary>${f.expressionVariants.map((v) => `<p class="field-origin">${esc(v.source)}</p>${v.expression ? expressionHtml(v.expression) : ui('<p>入力フィールドを継承</p>')}`).join('')}</details>`;
+    html += ui`<details class="raw-details"><summary>Formulas by input</summary>${f.expressionVariants.map((v) => `<p class="field-origin">${esc(v.source)}</p>${v.expression ? expressionHtml(v.expression) : ui('<p>Inherited input field</p>')}`).join('')}</details>`;
   if (f.changes?.length)
     html += `<div class="field-changes">${f.changes.map((c) => `<button data-action-id="${esc(c.actionId)}">${actionIcon(c.type, 15)} ${esc(ui(c.label))}${c.before ? ' : ' + esc(c.before) + ' → ' + esc(c.after) : ''} ↗</button>`).join('')}</div>`;
   return html;
@@ -72,10 +72,10 @@ function renderFields(n, q) {
         (fieldMode === 'all' || (fieldMode === 'used' ? !f.deleted : f.deleted)) &&
         textMatch(f.name + ' ' + f.type + ' ' + (f.expression || ''), q),
     );
-  return ui`<div class="inventory-heading">含まれるフィールド: <strong>${inventory.length}</strong> のうち <strong>${used}</strong> を使用</div><div class="field-filters" aria-label="フィールドの表示対象">${[
-    ['all', ui('すべて'), inventory.length],
-    ['used', ui('使用中'), used],
-    ['deleted', ui('削除済み'), deleted],
+  return ui`<div class="inventory-heading">Fields: <strong>${inventory.length}</strong> in total; <strong>${used}</strong> in use</div><div class="field-filters" aria-label="Field visibility">${[
+    ['all', ui('All'), inventory.length],
+    ['used', ui('In use'), used],
+    ['deleted', ui('Removed'), deleted],
   ]
     .map(
       ([key, label, count]) =>
@@ -83,7 +83,7 @@ function renderFields(n, q) {
     )
     .join(
       '',
-    )}</div>${warningHtml(n)}<table class="field-table"><thead><tr><th>型</th><th>フィールド名</th><th>変更</th></tr></thead><tbody>${list.map(({ f, i }) => ui`<tr class="${f.deleted ? 'deleted-row' : ''}"><td><span class="type-symbol" title="${esc((TYPE_NAMES[f.type] || f.type) + ' / ' + ui(f.typeSource))}">${esc(TYPE_SYMBOL[f.type] || '?')}</span></td><td><button class="field-name" data-field="${i}" aria-expanded="false" title="フィールドの詳細">${esc(f.name)}</button>${f.namespace && f.namespace !== 'Default' ? `<span class="namespace">${esc(NS_NAMES[f.namespace] || f.namespace)}</span>` : ''}</td><td><div class="change-icons">${fieldChanges(f)}</div></td></tr>`).join('')}</tbody></table>${list.length ? '' : ui('<div class="empty-note">該当するフィールドはありません。</div>')}`;
+    )}</div>${warningHtml(n)}<table class="field-table"><thead><tr><th>Type</th><th>Field name</th><th>Change</th></tr></thead><tbody>${list.map(({ f, i }) => ui`<tr class="${f.deleted ? 'deleted-row' : ''}"><td><span class="type-symbol" title="${esc((TYPE_NAMES[f.type] || f.type) + ' / ' + ui(f.typeSource))}">${esc(TYPE_SYMBOL[f.type] || '?')}</span></td><td><button class="field-name" data-field="${i}" aria-expanded="false" title="Field details">${esc(f.name)}</button>${f.namespace && f.namespace !== 'Default' ? `<span class="namespace">${esc(NS_NAMES[f.namespace] || f.namespace)}</span>` : ''}</td><td><div class="change-icons">${fieldChanges(f)}</div></td></tr>`).join('')}</tbody></table>${list.length ? '' : ui('<div class="empty-note">No matching fields.</div>')}`;
 }
 
 function changeCategory(action) {
@@ -100,7 +100,7 @@ function renderDetail() {
   $('overview-tabs').hidden = hasSelection;
   document
     .querySelector('.detail-section')
-    .setAttribute('aria-label', hasSelection ? ui('ステップの詳細') : ui('フロー全体の情報'));
+    .setAttribute('aria-label', hasSelection ? ui('Step details') : ui('Flow overview'));
   document.querySelector('.detail-heading').hidden = !hasSelection;
   content.classList.toggle('flow-overview', !hasSelection);
   content.setAttribute('role', 'tabpanel');
@@ -128,12 +128,12 @@ function renderDetail() {
   $('detail-content').setAttribute('aria-labelledby', 'tab-' + activeTab);
   document.querySelector('.detail-search').hidden = !selected || activeTab === 'settings';
   $('detail-search').placeholder =
-    activeTab === 'fields' ? ui('フィールドを検索') : ui('変更内容・計算式を検索');
+    activeTab === 'fields' ? ui('Search fields') : ui('Search changes and formulas');
   const n = byId.get(selected),
     q = $('detail-search').value.trim();
   if (!n) {
     $('detail-content').innerHTML =
-      `<div class="empty-note">${DATA.nodes.length ? ui('フローマップからステップを選択してください。') : ui('フローを開いて、ステップを選択してください。')}</div>`;
+      `<div class="empty-note">${DATA.nodes.length ? ui('Select a step in the flow diagram.') : ui('Open a flow and select a step.')}</div>`;
     return;
   }
   if (activeTab === 'fields') $('detail-content').innerHTML = renderFields(n, q);
@@ -142,10 +142,10 @@ function renderDetail() {
     n.actions.forEach((a) => counts[changeCategory(a)]++);
     if (!counts[changesMode]) changesMode = 'all';
     const tabs = [
-      ['all', ui('すべて')],
-      ['formulas', ui('計算式')],
-      ['filters', ui('フィルター')],
-      ['other', ui('その他')],
+      ['all', ui('All')],
+      ['formulas', ui('Formula')],
+      ['filters', ui('Filter')],
+      ['other', ui('Other')],
     ].filter(([mode]) => counts[mode]);
     const list = n.actions
       .map((a, i) => ({ a, i }))
@@ -154,7 +154,7 @@ function renderDetail() {
           (changesMode === 'all' || changeCategory(a) === changesMode) && textMatch(json(a), q),
       );
     $('detail-content').innerHTML =
-      ui`<div class="changes-toolbar"><span>変更内容 <strong>${n.actions.length}</strong> 件</span>${tabs.length ? ui`<div class="change-filters" role="group" aria-label="変更内容の種類">${tabs.map(([mode, label]) => `<button data-changes-mode="${mode}" class="${changesMode === mode ? 'active' : ''}" aria-pressed="${changesMode === mode}">${label}${mode === 'all' ? '' : ' ' + counts[mode]}</button>`).join('')}</div>` : ''}</div><div class="changes-list">${list.map(({ a, i }) => actionHtml(a, i)).join('')}</div>${list.length ? '' : ui('<div class="empty-note">該当する変更内容はありません。</div>')}`;
+      ui`<div class="changes-toolbar"><span>Changes <strong>${n.actions.length}</strong> items</span>${tabs.length ? ui`<div class="change-filters" role="group" aria-label="Change categories">${tabs.map(([mode, label]) => `<button data-changes-mode="${mode}" class="${changesMode === mode ? 'active' : ''}" aria-pressed="${changesMode === mode}">${label}${mode === 'all' ? '' : ' ' + counts[mode]}</button>`).join('')}</div>` : ''}</div><div class="changes-list">${list.map(({ a, i }) => actionHtml(a, i)).join('')}</div>${list.length ? '' : ui('<div class="empty-note">No matching changes.</div>')}`;
   } else $('detail-content').innerHTML = settingsHtml(n);
   $('detail-content').scrollTop = 0;
   requestAnimationFrame(updateFormulaPreviews);
@@ -166,15 +166,15 @@ function actionHtml(a, index) {
   let body = '';
   const heading =
     {
-      AddColumn: ui('計算フィールド'),
-      RenameColumn: ui('フィールド名を変更'),
-      RemoveColumn: ui('フィールドを削除'),
-      RemoveColumns: ui('フィールドを削除'),
+      AddColumn: ui('Calculated field'),
+      RenameColumn: ui('Rename field'),
+      RemoveColumn: ui('Remove fields'),
+      RemoveColumns: ui('Remove fields'),
     }[a.type] || ui(a.label);
   const chips = (values) =>
     `<div class="field-chips">${values.map((v) => `<span class="chip">${esc(v)}</span>`).join('')}</div>`;
   if (a.type === 'SimpleJoin') {
-    body = ui`<p class="change-context">${esc(JOIN_TYPE_LABELS[n.joinType] || n.joinType || ui('不明'))}結合 · 条件 ${(n.conditions || []).length} 件</p>`;
+    body = ui`<p class="change-context">${esc(JOIN_TYPE_LABELS[n.joinType] || n.joinType || ui('Unknown'))} join · ${(n.conditions || []).length} clauses</p>`;
   } else if (a.pivot) {
     const p = a.pivot;
     const sources = new Set(
@@ -185,8 +185,8 @@ function actionHtml(a, index) {
     );
     const summary =
       p.direction === 'columnsToRows'
-        ? ui`対象 ${sources.size} フィールド · 出力 ${outputs.size} フィールド`
-        : `${p.pivotField.name} → ${p.newColumns.length ? p.newColumns.length + ui(' 列') : ui('列名未保存')} · ${p.aggregation || ui('未設定')}(${p.valueField.name})`;
+        ? ui`${sources.size} source fields · ${outputs.size} output fields`
+        : `${p.pivotField.name} → ${p.newColumns.length ? p.newColumns.length + ui(' columns') : ui('Column names not saved')} · ${p.aggregation || ui('Not set')}(${p.valueField.name})`;
     body = `<p class="change-context">${esc(summary)}</p>`;
   } else if (a.type === 'ChangeColumnType') {
     const changes =
@@ -207,7 +207,7 @@ function actionHtml(a, index) {
     body = a.expressions
       .map(
         (e) =>
-          `${e.field && e.field !== '条件式' ? chips([e.field]) : e.references?.length ? chips(e.references) : ''}${expressionHtml(e.expression, { stepId: selected, actionId: a.id, field: e.field })}`,
+          `${e.field && e.field !== 'Condition' ? chips([e.field]) : e.references?.length ? chips(e.references) : ''}${expressionHtml(e.expression, { stepId: selected, actionId: a.id, field: e.field })}`,
       )
       .join('');
   } else if (a.type === 'RemoveColumn') {
@@ -221,7 +221,7 @@ function actionHtml(a, index) {
   } else if (a.type === 'MergeColumns') {
     body =
       chips(n.mergeColumnsList || []) +
-      ui`<p class="change-context">統合先: <strong>${esc(n.mergedColumnName || ui('未設定'))}</strong></p>`;
+      ui`<p class="change-context">Merge into: <strong>${esc(n.mergedColumnName || ui('Not set'))}</strong></p>`;
   } else if (['RangeFilter', 'ValueFilter'].includes(a.type)) {
     body = filterDisplayRows(n, a.type)
       .map(
@@ -232,7 +232,7 @@ function actionHtml(a, index) {
   } else if (a.type === 'Remap') {
     body =
       chips([n.columnName]) +
-      ui`<table class="small-table"><thead><tr><th>元の値</th><th>置換後</th></tr></thead><tbody>${Object.entries(
+      ui`<table class="small-table"><thead><tr><th>Original value</th><th>Replacement</th></tr></thead><tbody>${Object.entries(
         n.values || {},
       )
         .map(
@@ -243,7 +243,7 @@ function actionHtml(a, index) {
   } else if (a.type === 'SimpleUnion') body = unionHtml(n, byId.get(selected));
   else if (a.type === 'Aggregate') body = aggregateHtml(n);
   const phase =
-    a.phase === '処理前' || a.phase === '処理後'
+    a.phase === 'Before' || a.phase === 'After'
       ? ui(a.phase) +
         (a.namespace !== 'Default' ? ' · ' + (NS_NAMES[a.namespace] || a.namespace) : '')
       : '';
@@ -252,13 +252,13 @@ function actionHtml(a, index) {
 }
 
 const JOIN_TYPE_LABELS = uiLabels({
-  inner: '内部',
-  left: '左',
-  right: '右',
-  full: '完全外部',
-  leftOnly: '左のみ',
-  rightOnly: '右のみ',
-  notInner: '内部を除外',
+  inner: 'Inner',
+  left: 'Left',
+  right: 'Right',
+  full: 'Full outer',
+  leftOnly: 'Left only',
+  rightOnly: 'Right only',
+  notInner: 'Not inner',
 });
 
 function joinHtml(n, node = byId.get(selected)) {
@@ -267,39 +267,39 @@ function joinHtml(n, node = byId.get(selected)) {
     right = byId.get(inputs.find((e) => e.namespace === 'Right')?.source);
   const lc = left?.color || '#8395a0',
     rc = right?.color || '#8395a0',
-    ln = left?.name || ui('左入力'),
-    rn = right?.name || ui('右入力');
+    ln = left?.name || ui('Left input'),
+    rn = right?.name || ui('Right input');
   const field = (value) => (/^\[[^\]]+\]$/.test(value || '') ? value.slice(1, -1) : value);
   const comparator = (value) =>
     ({ '==': '=', '!=': '≠', '<>': '≠', '>=': '≥', '<=': '≤' })[value] || value;
   const type = n.joinType,
-    label = JOIN_TYPE_LABELS[type] || type || ui('不明'),
+    label = JOIN_TYPE_LABELS[type] || type || ui('Unknown'),
     clip = 'join-left-' + String(n.id || 'settings').replace(/[^a-zA-Z0-9_-]/g, '');
   const regions = joinRegions(type),
     fill = '#c8cdd0',
     leftFill = regions.left ? fill : 'white',
     rightFill = regions.right ? fill : 'white';
   const intersection = regions.overlap ? fill : 'white';
-  const diagram = `<svg class="join-venn" viewBox="0 0 78 48" role="img" aria-label="${esc(ui('結合タイプ: ') + label)}"><defs><clipPath id="${clip}"><circle cx="29" cy="24" r="19"/></clipPath></defs><circle cx="29" cy="24" r="19" fill="${leftFill}"/><circle cx="49" cy="24" r="19" fill="${rightFill}"/><circle cx="49" cy="24" r="19" fill="${intersection}" clip-path="url(#${clip})"/><circle cx="29" cy="24" r="19" fill="none" stroke="${lc}" stroke-width="1.5"/><circle cx="49" cy="24" r="19" fill="none" stroke="${rc}" stroke-width="1.5"/></svg>`;
-  return ui`<section class="join-settings" style="--join-left:${lc};--join-right:${rc}"><h3>適用した結合句</h3><table class="join-clauses"><thead><tr><th scope="col" class="join-left"><span>左</span>${esc(ln)}</th><th scope="col" class="join-comparator"><span class="sr-only">条件</span></th><th scope="col" class="join-right"><span>右</span>${esc(rn)}</th></tr></thead><tbody>${(n.conditions || []).map((c) => `<tr><td class="join-left">${esc(field(c.leftExpression))}</td><td class="join-comparator">${esc(comparator(c.comparator))}</td><td class="join-right">${esc(field(c.rightExpression))}</td></tr>`).join('')}</tbody></table>${n.conditions?.length ? '' : ui('<p class="change-context">結合条件は保存されていません。</p>')}<h3 class="join-type-heading">結合タイプ: ${esc(label)}</h3><div class="join-type-preview"><span class="join-source-label" style="--source-color:${lc}">${esc(ln)}</span>${diagram}<span class="join-source-label" style="--source-color:${rc}">${esc(rn)}</span></div></section>`;
+  const diagram = `<svg class="join-venn" viewBox="0 0 78 48" role="img" aria-label="${esc(ui('Join type: ') + label)}"><defs><clipPath id="${clip}"><circle cx="29" cy="24" r="19"/></clipPath></defs><circle cx="29" cy="24" r="19" fill="${leftFill}"/><circle cx="49" cy="24" r="19" fill="${rightFill}"/><circle cx="49" cy="24" r="19" fill="${intersection}" clip-path="url(#${clip})"/><circle cx="29" cy="24" r="19" fill="none" stroke="${lc}" stroke-width="1.5"/><circle cx="49" cy="24" r="19" fill="none" stroke="${rc}" stroke-width="1.5"/></svg>`;
+  return ui`<section class="join-settings" style="--join-left:${lc};--join-right:${rc}"><h3>Applied join clauses</h3><table class="join-clauses"><thead><tr><th scope="col" class="join-left"><span>Left</span>${esc(ln)}</th><th scope="col" class="join-comparator"><span class="sr-only">Clause</span></th><th scope="col" class="join-right"><span>Right</span>${esc(rn)}</th></tr></thead><tbody>${(n.conditions || []).map((c) => `<tr><td class="join-left">${esc(field(c.leftExpression))}</td><td class="join-comparator">${esc(comparator(c.comparator))}</td><td class="join-right">${esc(field(c.rightExpression))}</td></tr>`).join('')}</tbody></table>${n.conditions?.length ? '' : ui('<p class="change-context">Join clauses were not saved.</p>')}<h3 class="join-type-heading">Join type: ${esc(label)}</h3><div class="join-type-preview"><span class="join-source-label" style="--source-color:${lc}">${esc(ln)}</span>${diagram}<span class="join-source-label" style="--source-color:${rc}">${esc(rn)}</span></div></section>`;
 }
 
 function aggregateHtml(n) {
-  return ui`<table class="small-table"><thead><tr><th>フィールド</th><th>役割 / 集計方法</th><th>出力フィールド</th></tr></thead><tbody>${[...(n.groupByFields || []).map((x) => ({ ...x, role: ui('グループ化') })), ...(n.aggregateFields || []).map((x) => ({ ...x, role: x.function }))].map((x) => `<tr><td>${esc(x.columnName)}</td><td><span class="badge changed">${esc(x.role)}</span></td><td>${esc(x.newColumnName || x.columnName)}</td></tr>`).join('')}</tbody></table>`;
+  return ui`<table class="small-table"><thead><tr><th>Field</th><th>Role / Aggregation</th><th>Output field</th></tr></thead><tbody>${[...(n.groupByFields || []).map((x) => ({ ...x, role: ui('Group by') })), ...(n.aggregateFields || []).map((x) => ({ ...x, role: x.function }))].map((x) => `<tr><td>${esc(x.columnName)}</td><td><span class="badge changed">${esc(x.role)}</span></td><td>${esc(x.newColumnName || x.columnName)}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function pivotHtml(pivot, node) {
-  if (!pivot) return ui('<p class="change-context">ピボット設定は保存されていません。</p>');
+  if (!pivot) return ui('<p class="change-context">Pivot settings were not saved.</p>');
   const field = (f) =>
-    `<span class="pivot-field"><span class="type-symbol" title="${esc(TYPE_NAMES[f.type] || ui('不明'))}">${esc(TYPE_SYMBOL[f.type] || '?')}</span><span>${esc(f.name)}</span></span>`;
+    `<span class="pivot-field"><span class="type-symbol" title="${esc(TYPE_NAMES[f.type] || ui('Unknown'))}">${esc(TYPE_SYMBOL[f.type] || '?')}</span><span>${esc(f.name)}</span></span>`;
   const patterns = {
-    Contains: ui('を含む'),
-    'Starts with': ui('で始まる'),
-    'Ends with': ui('で終わる'),
-    'Regular Expression': ui('（正規表現）'),
-    Date: ui('（日付）'),
+    Contains: ui(' contains'),
+    'Starts with': ui(' starts with'),
+    'Ends with': ui(' ends with'),
+    'Regular Expression': ui(' (regular expression)'),
+    Date: ui(' (date)'),
   };
-  const retained = ui`<section class="pivot-retained"><h3>フィールド</h3>${pivot.retained.length ? `<ul>${pivot.retained.map((f) => `<li>${field(f)}</li>`).join('')}</ul>` : ui('<p class="change-context">なし</p>')}</section>`;
+  const retained = ui`<section class="pivot-retained"><h3>Field</h3>${pivot.retained.length ? `<ul>${pivot.retained.map((f) => `<li>${field(f)}</li>`).join('')}</ul>` : ui('<p class="change-context">None</p>')}</section>`;
   let content = '';
   if (pivot.direction === 'columnsToRows') {
     content = pivot.groups
@@ -309,16 +309,16 @@ function pivotHtml(pivot, node) {
       })
       .join('');
   } else {
-    content = ui`<div class="pivot-row-field"><h4>${esc(pivot.pivotField.name)}</h4><ul>${pivot.newColumns.map((name) => `<li>${esc(name)}</li>`).join('')}</ul></div><section class="pivot-aggregate"><h3>新しい列の集計フィールド</h3><div><span class="pivot-aggregation">${esc(pivot.aggregation || ui('未設定'))}</span>${field(pivot.valueField)}</div></section>`;
+    content = ui`<div class="pivot-row-field"><h4>${esc(pivot.pivotField.name)}</h4><ul>${pivot.newColumns.map((name) => `<li>${esc(name)}</li>`).join('')}</ul></div><section class="pivot-aggregate"><h3>Aggregation for new columns</h3><div><span class="pivot-aggregation">${esc(pivot.aggregation || ui('Not set'))}</span>${field(pivot.valueField)}</div></section>`;
   }
-  return ui`<section class="pivot-settings" aria-label="ピボット設定" style="--pivot-color:${esc(node?.color || '#499893')}">${retained}<section class="pivot-transformed"><div class="pivot-section-heading"><h3>ピボットされたフィールド</h3><span class="pivot-direction">${pivot.direction === 'columnsToRows' ? ui('列から行') : ui('行から列')}</span></div>${content}</section>${pivot.notes.map((note) => `<p class="change-context">${esc(uiMessage(note))}</p>`).join('')}</section>`;
+  return ui`<section class="pivot-settings" aria-label="Pivot settings" style="--pivot-color:${esc(node?.color || '#499893')}">${retained}<section class="pivot-transformed"><div class="pivot-section-heading"><h3>Pivoted fields</h3><span class="pivot-direction">${pivot.direction === 'columnsToRows' ? ui('Columns to rows') : ui('Rows to columns')}</span></div>${content}</section>${pivot.notes.map((note) => `<p class="change-context">${esc(uiMessage(note))}</p>`).join('')}</section>`;
 }
 
 function unionHtml(n, node) {
   const inputs = [...new Set(DATA.edges.filter((e) => e.target === node?.id).map((e) => e.source))]
     .map((id) => byId.get(id))
     .filter(Boolean);
-  return ui`<section class="union-inputs" aria-label="ユニオンの入力"><h3>入力</h3><ul>${inputs.map((input) => `<li><span class="union-input-color" style="background:${esc(input.color)}" aria-hidden="true"></span><span>${esc(input.name)}</span></li>`).join('')}</ul></section>`;
+  return ui`<section class="union-inputs" aria-label="Union inputs"><h3>Input</h3><ul>${inputs.map((input) => `<li><span class="union-input-color" style="background:${esc(input.color)}" aria-hidden="true"></span><span>${esc(input.name)}</span></li>`).join('')}</ul></section>`;
 }
 
 function keyValues(object) {
@@ -332,12 +332,12 @@ function outputSettingsHtml(n) {
   const r = n.raw,
     type = (n.nodeType || '').split('.').pop();
   const formats = {
-    WriteToHyper: ui('Tableau データ抽出 (.hyper)'),
+    WriteToHyper: ui('Tableau Data Extract (.hyper)'),
     WriteToCsv: 'CSV (.csv)',
     WriteToExcel: 'Microsoft Excel (.xlsx)',
     WriteToJson: 'JSON (.json)',
-    WriteToDatabase: ui('データベース'),
-    PublishExtract: ui('パブリッシュされたデータソース'),
+    WriteToDatabase: ui('Database'),
+    PublishExtract: ui('Published data source'),
   };
   const path =
     r.hyperOutputFile ||
@@ -351,7 +351,7 @@ function outputSettingsHtml(n) {
     folder = split < 0 ? '' : path.slice(0, split + 1).replace(/([^:])[\\/]$/, '$1');
   const fileType = ['WriteToHyper', 'WriteToCsv', 'WriteToExcel', 'WriteToJson'].includes(type);
   const row = (label, value) =>
-    `<div class="output-row"><dt>${esc(label)}</dt><dd>${esc(value || ui('未設定'))}</dd></div>`;
+    `<div class="output-row"><dt>${esc(label)}</dt><dd>${esc(value || ui('Not set'))}</dd></div>`;
   const props =
     Object.values(n.properties || {}).find(
       (p) => p?.nodePropertyType === '.v2020_2_1.OutputRefreshOptions',
@@ -367,20 +367,20 @@ function outputSettingsHtml(n) {
   const mode =
     props.outputOperationType || (defaults[type] ? 'outputOperationType' + defaults[type] : '');
   const modeLabels = {
-    outputOperationTypeCreate: ui('テーブルの作成'),
-    outputOperationTypeAppend: ui('テーブルに追加'),
-    outputOperationTypeTruncate: ui('データの置換'),
-    outputOperationTypeUpsert: ui('データの更新と挿入'),
+    outputOperationTypeCreate: ui('Create table'),
+    outputOperationTypeAppend: ui('Append to table'),
+    outputOperationTypeTruncate: ui('Replace data'),
+    outputOperationTypeUpsert: ui('Update and insert data'),
   };
   let fields = row(
-    ui('出力の保存先'),
+    ui('Output destination'),
     fileType || path
-      ? ui('ファイル')
+      ? ui('File')
       : type === 'WriteToDatabase'
-        ? ui('データベース')
+        ? ui('Database')
         : type === 'PublishExtract'
-          ? ui('パブリッシュされたデータソース')
-          : ui('保存先の情報なし'),
+          ? ui('Published data source')
+          : ui('No destination information'),
   );
   if (type === 'PublishExtract') {
     const connection = connectionInfo(n.connection);
@@ -391,32 +391,32 @@ function outputSettingsHtml(n) {
     const site =
       siteKeys.map((key) => text(r[key])).find(Boolean) ||
       (siteKeys.some((key) => r[key] === '') ? 'Default' : connection.site);
-    fields += row(ui('サーバー'), server || ui('フローに情報なし'));
-    if (site) fields += row(ui('サイト'), site);
-    fields += row(ui('プロジェクト'), project || ui('フローに情報なし'));
+    fields += row(ui('Server'), server || ui('Not recorded in flow'));
+    if (site) fields += row(ui('Site'), site);
+    fields += row(ui('Project'), project || ui('Not recorded in flow'));
   }
   fields += row(
-    ui('名前'),
+    ui('Name'),
     filename
       ? filename.replace(/\.(hyper|csv|xlsx|json)$/i, '')
       : r.attributes?.tablename || r.datasourceName || n.name,
   );
-  if (fileType || path) fields += row(ui('場所'), folder);
-  fields += row(ui('出力タイプ'), formats[type] || type || ui('不明'));
-  let options = row(ui('完全更新'), modeLabels[mode] || mode || ui('設定情報なし'));
+  if (fileType || path) fields += row(ui('Location'), folder);
+  fields += row(ui('Output type'), formats[type] || type || ui('Unknown'));
+  let options = row(ui('Full refresh'), modeLabels[mode] || mode || ui('No settings recorded'));
   if (props.incrementalOutputOperationType)
     options += row(
-      ui('増分更新'),
+      ui('Incremental refresh'),
       modeLabels[props.incrementalOutputOperationType] || props.incrementalOutputOperationType,
     );
-  if (props.isIncrementalDefault) options += row(ui('既定の更新方法'), ui('増分更新'));
+  if (props.isIncrementalDefault) options += row(ui('Default refresh'), ui('Incremental refresh'));
   const edit =
     typeof CAN_EDIT !== 'undefined' &&
     CAN_EDIT &&
     ['WriteToHyper', 'WriteToCsv', 'WriteToExcel', 'PublishExtract'].includes(type)
-      ? ui`<button class="button" data-edit-output="${esc(n.id)}">出力先を編集</button>`
+      ? ui`<button class="button" data-edit-output="${esc(n.id)}">Edit output destination</button>`
       : '';
-  return ui`<section class="output-settings" aria-label="出力設定">${edit}<dl>${fields}</dl><h3>書き込みオプション</h3><dl>${options}</dl></section>`;
+  return ui`<section class="output-settings" aria-label="Output settings">${edit}<dl>${fields}</dl><h3>Write options</h3><dl>${options}</dl></section>`;
 }
 
 function settingsHtml(n) {
@@ -429,13 +429,13 @@ function settingsHtml(n) {
     action = r.actionNode;
   if (n.kind === 'input') {
     const info = connectionInfo(n.connection, n);
-    out = ui`<div class="settings-grid"><div class="settings-card"><h3>${info.tableau ? 'Tableau Server' : ui('入力と接続')}</h3><div class="card-content">${info.tableau ? tableauConnectionHtml(info) : keyValues({ 接続名: n.connection.name, 接続形式: n.connection.connectionAttributes?.class, 同梱データ: n.connection.isPackaged ? ui('あり') : ui('なし / 不明'), テーブル: r.relation?.table, ファイル: n.connection.connectionAttributes?.filename, 入力の種類: n.nodeType })}</div></div><div class="settings-card"><h3>読み取り設定</h3><div class="card-content">${keyValues({ 文字コード: r.charSet, 区切り文字: r.separator, ロケール: r.locale, ヘッダー: r.containsHeaders, ファイルパターン: r.filePattern, サブフォルダも対象: r.includeSubDirectory, データ行数: ui('取得しません') })}</div></div></div>`;
+    out = ui`<div class="settings-grid"><div class="settings-card"><h3>${info.tableau ? 'Tableau Server' : ui('Input and connection')}</h3><div class="card-content">${info.tableau ? tableauConnectionHtml(info) : keyValues({ 'Connection name': n.connection.name, 'Connection type': n.connection.connectionAttributes?.class, 'Packaged data': n.connection.isPackaged ? ui('Yes') : ui('No / Unknown'), Table: r.relation?.table, File: n.connection.connectionAttributes?.filename, 'Input type': n.nodeType })}</div></div><div class="settings-card"><h3>Read settings</h3><div class="card-content">${keyValues({ Encoding: r.charSet, Delimiter: r.separator, Locale: r.locale, Header: r.containsHeaders, 'File pattern': r.filePattern, 'Include subfolders': r.includeSubDirectory, 'Data row count': ui('Not retrieved') })}</div></div></div>`;
     if (r.generatedInputs?.length)
-      out += ui`<div class="settings-card"><h3>ワイルドカード入力 · ${r.generatedInputs.length} ファイル</h3><div class="card-content">${r.generatedInputs.map((x) => `<p>${esc(x.filePath || x.inputNode?.name)}</p>`).join('')}</div></div>`;
+      out += ui`<div class="settings-card"><h3>Wildcard input · ${r.generatedInputs.length} files</h3><div class="card-content">${r.generatedInputs.map((x) => `<p>${esc(x.filePath || x.inputNode?.name)}</p>`).join('')}</div></div>`;
     const extra = { ...r };
     ['fields', 'actions', 'generatedInputs', 'nextNodes'].forEach((k) => delete extra[k]);
     out +=
-      ui`<div class="settings-card"><h3>接続情報</h3><div class="card-content"><pre class="raw-pre">${esc(json(n.connection.connectionAttributes || n.connection))}</pre></div></div>` +
+      ui`<div class="settings-card"><h3>Connections</h3><div class="card-content"><pre class="raw-pre">${esc(json(n.connection.connectionAttributes || n.connection))}</pre></div></div>` +
       rawDetail(extra);
   } else if (action) {
     const content =
@@ -449,11 +449,11 @@ function settingsHtml(n) {
               ? pivotHtml(action)
               : rawDetail(action);
     const inputs = DATA.edges.filter((e) => e.target === n.id);
-    out = ui`<div class="settings-card"><h3>${esc(ui(n.kindLabel))}の設定</h3><div class="card-content">${inputs.length > 1 ? `<div class="field-chips">${inputs.map((e) => `<span class="chip">${esc(NS_NAMES[e.namespace] || ui('入力'))} : ${esc(byId.get(e.source)?.name)}</span>`).join('')}</div>` : ''}${content}</div></div>${rawDetail(action)}`;
+    out = ui`<div class="settings-card"><h3>${esc(ui(n.kindLabel))} settings</h3><div class="card-content">${inputs.length > 1 ? `<div class="field-chips">${inputs.map((e) => `<span class="chip">${esc(NS_NAMES[e.namespace] || ui('Input'))} : ${esc(byId.get(e.source)?.name)}</span>`).join('')}</div>` : ''}${content}</div></div>${rawDetail(action)}`;
   } else
-    out = ui`<div class="settings-card"><h3>クリーニングの概要</h3><div class="card-content">${keyValues({ ステップ名: n.name, 加工数: n.actions.length, 計算式数: n.calculations.length, 説明: n.description || ui('説明は保存されていません'), 加工内容: ui('「変更内容」タブで実行順に確認できます。') })}</div></div>`;
+    out = ui`<div class="settings-card"><h3>Cleaning overview</h3><div class="card-content">${keyValues({ 'Step name': n.name, Transformations: n.actions.length, Formulas: n.calculations.length, Description: n.description || ui('No description saved'), Transformations: ui('See the Changes tab for operations in execution order.') })}</div></div>`;
   return (
     out +
-    ui`<details class="raw-details"><summary>ステップの元の定義</summary><pre class="raw-pre">${esc(json(n.raw))}</pre></details><details class="raw-details"><summary>配置・色の定義</summary><pre class="raw-pre">${esc(json(n.display))}</pre></details>`
+    ui`<details class="raw-details"><summary>Original step definition</summary><pre class="raw-pre">${esc(json(n.raw))}</pre></details><details class="raw-details"><summary>Layout and color definition</summary><pre class="raw-pre">${esc(json(n.display))}</pre></details>`
   );
 }

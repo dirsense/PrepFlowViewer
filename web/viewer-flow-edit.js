@@ -1,4 +1,4 @@
-// 確定済みの変更、フロー全体の Undo / Redo、保存、終了時の未保存判定。
+// Confirmed edits, flow Undo/Redo, saving and unsaved-change checks.
 
 function updateFlowEditButtons() {
   if (!CAN_EDIT) return;
@@ -34,12 +34,12 @@ async function requestFlowEdits(path, changes) {
   } catch {
     throw new Error(
       ui(
-        'ローカルサーバーと通信できませんでした。編集内容は保持しています。画面を再読み込みせず、サーバーの起動状態を確認してください。',
+        'Cannot connect to the local server. Your edits are retained. Check that the server is running without reloading this page.',
       ),
     );
   }
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || ui('変更を反映できませんでした。'));
+  if (!response.ok) throw new Error(result.error || ui('Could not apply changes.'));
   return result;
 }
 
@@ -81,7 +81,7 @@ async function confirmFormula() {
     applyEditedModel(result);
     formulaPopup.history.reset(source);
     renderFormulaPopup();
-    uiBind($('status-text'), 'textContent', () => ui('変更を確定しました · ファイルには未保存'));
+    uiBind($('status-text'), 'textContent', () => ui('Changes confirmed · Not yet saved to file'));
   } catch (error) {
     uiBind($('formula-save-error'), 'textContent', () => uiMessage(error.message));
     $('formula-save-error').hidden = false;
@@ -113,7 +113,7 @@ async function moveFlowHistory(direction) {
       activeTab = 'settings';
       renderDetail();
       uiBind($('status-text'), 'textContent', () =>
-        undo ? ui('出力先の変更を元に戻しました') : ui('出力先の変更をやり直しました'),
+        undo ? ui('Output changes undone') : ui('Output changes redone'),
       );
       return;
     }
@@ -123,7 +123,7 @@ async function moveFlowHistory(direction) {
     formulaDrafts.delete(key);
     openFormulaPopup(undo ? change.before : change.expression, origin);
     uiBind($('status-text'), 'textContent', () =>
-      undo ? ui('変更を元に戻しました') : ui('変更をやり直しました'),
+      undo ? ui('Changes undone') : ui('Changes redone'),
     );
   } catch (error) {
     toast(error.message);
@@ -135,19 +135,19 @@ async function moveFlowHistory(direction) {
 async function saveFlow() {
   if (!CAN_EDIT || flowEditBusy || !flowSession.history.dirty) return;
   setFlowEditBusy(true);
-  uiBind($('save-flow'), 'textContent', () => ui('保存先を選択中…'));
+  uiBind($('save-flow'), 'textContent', () => ui('Choosing destination…'));
   try {
     const result = await requestFlowEdits('/api/save-flow', flowSession.history.changes);
     if (result.cancelled) return;
     flowSession.history.reset();
     applyEditedModel(result);
     refreshRecent();
-    uiBind($('status-text'), 'textContent', () => ui`${DATA.name} を保存しました`);
-    toast(ui`${DATA.name} を保存しました`);
+    uiBind($('status-text'), 'textContent', () => ui`Saved ${DATA.name}`);
+    toast(ui`Saved ${DATA.name}`);
   } catch (error) {
     toast(error.message);
   } finally {
-    uiBind($('save-flow'), 'textContent', () => ui('フローを保存'));
+    uiBind($('save-flow'), 'textContent', () => ui('Save flow'));
     setFlowEditBusy(false);
   }
 }

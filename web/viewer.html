@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" data-language="ja">
+<html lang="en" data-language="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -13,23 +13,23 @@
   <div class="header-file">
     <h1 id="file-name">PrepFlow Viewer</h1>
     <div class="recent-picker" id="recent-picker" hidden>
-      <button id="recent-toggle" aria-haspopup="menu" aria-expanded="false" aria-controls="recent-menu"><span id="recent-name">フローを開いてください</span><span class="recent-path" id="recent-path"></span><span aria-hidden="true">⌄</span></button>
-      <div id="recent-menu" role="menu" aria-label="最近開いたフロー" hidden></div>
+      <button id="recent-toggle" aria-haspopup="menu" aria-expanded="false" aria-controls="recent-menu"><span id="recent-name">Open a flow</span><span class="recent-path" id="recent-path"></span><span aria-hidden="true">⌄</span></button>
+      <div id="recent-menu" role="menu" aria-label="Recent flows" hidden></div>
     </div>
     <div class="flow-view-tools">
-      <button class="header-button" id="fit-button" title="フロー全体を表示" aria-label="フロー全体を表示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3M4 15v3a2 2 0 0 0 2 2h3m11-5v3a2 2 0 0 1-2 2h-3"/></svg></button>
-      <button class="header-button" id="publish-button" title="Tableau Serverへパブリッシュ" aria-label="Tableau Serverへパブリッシュ" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg></button>
-      <button class="header-button" id="download-button" title="出力・保存" aria-label="出力・保存" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg></button>
-      <button class="header-button" id="run-button" title="フローを実行" aria-label="フローを実行" aria-haspopup="dialog" disabled hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 15 9-15 9Z"/></svg></button>
+      <button class="header-button" id="fit-button" title="Fit entire flow" aria-label="Fit entire flow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3M4 15v3a2 2 0 0 0 2 2h3m11-5v3a2 2 0 0 1-2 2h-3"/></svg></button>
+      <button class="header-button" id="publish-button" title="Publish to Tableau Server" aria-label="Publish to Tableau Server" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg></button>
+      <button class="header-button" id="download-button" title="Export and save" aria-label="Export and save" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg></button>
+      <button class="header-button" id="run-button" title="Run flow" aria-label="Run flow" aria-haspopup="dialog" disabled hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 15 9-15 9Z"/></svg></button>
       <div id="flow-edit-tools" hidden>
-        <button class="header-button" id="undo-flow" title="元に戻す" aria-label="元に戻す" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-5 5 5 5M3 8h11.5a6.5 6.5 0 0 1 0 13H12"/></svg></button>
-        <button class="header-button" id="redo-flow" title="やり直す" aria-label="やり直す" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5-5 5M21 8H9.5a6.5 6.5 0 0 0 0 13H12"/></svg></button>
+        <button class="header-button" id="undo-flow" title="Undo" aria-label="Undo" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-5 5 5 5M3 8h11.5a6.5 6.5 0 0 1 0 13H12"/></svg></button>
+        <button class="header-button" id="redo-flow" title="Redo" aria-label="Redo" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5-5 5M21 8H9.5a6.5 6.5 0 0 0 0 13H12"/></svg></button>
       </div>
       <div class="language-picker">
-        <button class="header-button" id="language-button" title="表示言語" aria-label="表示言語" aria-haspopup="menu" aria-expanded="false" aria-controls="language-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg></button>
-        <div id="language-menu" role="menu" aria-label="言語を選択" hidden>
-          <button role="menuitemradio" data-language="ja" aria-checked="true" lang="ja">日本語</button>
-          <button role="menuitemradio" data-language="en" aria-checked="false" lang="en">English</button>
+        <button class="header-button" id="language-button" title="Language" aria-label="Language" aria-haspopup="menu" aria-expanded="false" aria-controls="language-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg></button>
+        <div id="language-menu" role="menu" aria-label="Select language" hidden>
+          <button role="menuitemradio" data-language="en" aria-checked="true" lang="en">English</button>
+          <button role="menuitemradio" data-language="ja" aria-checked="false" lang="ja">日本語</button>
           <button role="menuitemradio" data-language="fr" aria-checked="false" lang="fr">Français</button>
           <button role="menuitemradio" data-language="es" aria-checked="false" lang="es">Español</button>
           <button role="menuitemradio" data-language="de" aria-checked="false" lang="de">Deutsch</button>
@@ -39,162 +39,162 @@
     </div>
   </div>
   <div class="header-actions">
-    <button class="button primary" id="open-button">＋ <span>フローを開く</span></button>
+    <button class="button primary" id="open-button">＋ <span>Open flow</span></button>
     <input type="file" id="file-input" accept=".tflx,.tfl" hidden>
   </div>
 </header>
 <main class="workspace">
-  <section class="flow-section" aria-label="フロー図">
+  <section class="flow-section" aria-label="Flow diagram">
     <div id="graph" class="graph">
-      <svg id="flow-svg" xmlns="http://www.w3.org/2000/svg" aria-label="フローのステップと接続"><defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="context-stroke"/></marker></defs><g id="viewport"><g id="edges"></g><g id="nodes"></g><g id="step-comments"></g></g></svg>
-      <div id="empty-state" hidden><div class="empty-icon">↥</div><p>ここに .tflx / .tfl をドロップ<br>データソースに接続せず、構造と加工内容を確認できます。</p><button class="button primary" id="empty-open">ファイルを選ぶ</button></div>
+      <svg id="flow-svg" xmlns="http://www.w3.org/2000/svg" aria-label="Flow steps and connections"><defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="context-stroke"/></marker></defs><g id="viewport"><g id="edges"></g><g id="nodes"></g><g id="step-comments"></g></g></svg>
+      <div id="empty-state" hidden><div class="empty-icon">↥</div><p>Drop a .tflx / .tfl file here<br>Explore the structure and transformations without connecting to data sources.</p><button class="button primary" id="empty-open">Choose file</button></div>
     </div>
   </section>
-  <div id="splitter" role="separator" aria-label="詳細パネルの幅を調整" aria-orientation="vertical" tabindex="0"><span></span></div>
-  <aside class="detail-section" aria-label="ステップの詳細">
-    <nav id="overview-tabs" class="detail-tabs overview-tabs" role="tablist" aria-label="フロー全体の情報" hidden>
-      <button role="tab" id="overview-info" data-overview-tab="info" aria-controls="detail-content" aria-selected="true" class="active">フロー情報</button>
-      <button role="tab" id="overview-connections" data-overview-tab="connections" aria-controls="detail-content" aria-selected="false" tabindex="-1">接続情報</button>
-      <button role="tab" id="overview-help" data-overview-tab="help" aria-controls="detail-content" aria-selected="false" tabindex="-1">使い方</button>
+  <div id="splitter" role="separator" aria-label="Resize details panel" aria-orientation="vertical" tabindex="0"><span></span></div>
+  <aside class="detail-section" aria-label="Step details">
+    <nav id="overview-tabs" class="detail-tabs overview-tabs" role="tablist" aria-label="Flow overview" hidden>
+      <button role="tab" id="overview-info" data-overview-tab="info" aria-controls="detail-content" aria-selected="true" class="active">Flow information</button>
+      <button role="tab" id="overview-connections" data-overview-tab="connections" aria-controls="detail-content" aria-selected="false" tabindex="-1">Connections</button>
+      <button role="tab" id="overview-help" data-overview-tab="help" aria-controls="detail-content" aria-selected="false" tabindex="-1">Help</button>
     </nav>
-    <nav class="detail-tabs" role="tablist" aria-label="詳細の種類">
-      <button role="tab" id="tab-fields" data-tab="fields" aria-controls="detail-content" class="active">フィールド一覧</button>
-      <button role="tab" id="tab-actions" data-tab="actions" aria-controls="detail-content">変更内容</button>
-      <button role="tab" id="tab-settings" data-tab="settings" aria-controls="detail-content">設定・接続</button>
+    <nav class="detail-tabs" role="tablist" aria-label="Detail tabs">
+      <button role="tab" id="tab-fields" data-tab="fields" aria-controls="detail-content" class="active">Fields</button>
+      <button role="tab" id="tab-actions" data-tab="actions" aria-controls="detail-content">Changes</button>
+      <button role="tab" id="tab-settings" data-tab="settings" aria-controls="detail-content">Settings and connections</button>
     </nav>
-    <div class="detail-heading"><div id="selected-icon" class="selected-icon"></div><div class="selected-title"><h2 id="selected-name">ステップを選択</h2><p id="selected-summary">ステップをクリックすると、詳細を表示します。</p></div><div class="step-navigation"><button id="previous-step" class="step-arrow" aria-label="前のステップへ" title="前のステップへ" aria-expanded="false" aria-controls="step-choices" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><button id="next-step" class="step-arrow" aria-label="次のステップへ" title="次のステップへ" aria-expanded="false" aria-controls="step-choices" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div id="step-choices" class="step-choices" role="dialog" aria-label="移動先のステップを選択" hidden></div></div></div>
-    <div class="detail-search"><span>⌕</span><input id="detail-search" type="search" placeholder="フィールドを検索" aria-label="このステップ内を検索"></div>
+    <div class="detail-heading"><div id="selected-icon" class="selected-icon"></div><div class="selected-title"><h2 id="selected-name">Select a step</h2><p id="selected-summary">Click a step to view its details.</p></div><div class="step-navigation"><button id="previous-step" class="step-arrow" aria-label="Previous step" title="Previous step" aria-expanded="false" aria-controls="step-choices" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button><button id="next-step" class="step-arrow" aria-label="Next step" title="Next step" aria-expanded="false" aria-controls="step-choices" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><div id="step-choices" class="step-choices" role="dialog" aria-label="Select a step to navigate to" hidden></div></div></div>
+    <div class="detail-search"><span>⌕</span><input id="detail-search" type="search" placeholder="Search fields" aria-label="Search this step"></div>
     <div id="detail-content" class="detail-content" role="tabpanel" aria-labelledby="tab-fields"></div>
   </aside>
 </main>
-<footer class="statusbar"><span id="status-text">ドラッグで移動 · ホイールで拡大／縮小 · ダブルクリックで全体表示</span><span id="stats-text"></span></footer>
-<div id="drop-overlay" hidden><div><span>↥</span><h2>フローをここにドロップ</h2><p>.tflx / .tfl</p></div></div>
-<div id="busy-overlay" hidden><div class="spinner"></div><h2>フローの定義を読み込んでいます</h2><p>入力データの読み込みや接続は行いません</p></div>
+<footer class="statusbar"><span id="status-text">Drag to pan · Scroll to zoom · Double-click to fit</span><span id="stats-text"></span></footer>
+<div id="drop-overlay" hidden><div><span>↥</span><h2>Drop a flow here</h2><p>.tflx / .tfl</p></div></div>
+<div id="busy-overlay" hidden><div class="spinner"></div><h2>Loading flow definition</h2><p>No input data is loaded or connected</p></div>
 <div id="toast" role="status" hidden></div>
 <dialog id="download-dialog" aria-labelledby="download-title">
-  <div class="dialog-heading"><h2 id="download-title">出力・保存</h2><button class="icon-button" id="close-download" aria-label="出力・保存メニューを閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="download-title">Export and save</h2><button class="icon-button" id="close-download" aria-label="Close export and save menu">×</button></div>
   <div class="download-options">
-    <button class="button" id="export-button">HTMLを出力</button>
-    <button class="button" id="save-flow" disabled>フローを保存</button>
+    <button class="button" id="export-button">Export HTML</button>
+    <button class="button" id="save-flow" disabled>Save flow</button>
   </div>
-  <p class="download-note">フローの保存は、編集内容を確定すると使えます。</p>
+  <p class="download-note">Save flow becomes available after you confirm an edit.</p>
 </dialog>
 <dialog id="batch-dialog" aria-labelledby="batch-title">
-  <div class="dialog-heading"><h2 id="batch-title">HTMLを出力</h2><button class="icon-button" id="close-batch" aria-label="HTML出力を閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="batch-title">Export HTML</h2><button class="icon-button" id="close-batch" aria-label="Close HTML export">×</button></div>
   <div class="html-export-options">
-    <label id="html-language-label">対応言語</label>
+    <label id="html-language-label">Supported languages</label>
     <details id="html-language-picker"><summary aria-labelledby="html-language-label html-language-summary"><span id="html-language-summary"></span><span aria-hidden="true">▾</span></summary><div id="html-language-options" role="group" aria-labelledby="html-language-label"></div></details>
-    <label class="html-switcher-label"><input type="checkbox" id="html-language-switcher"> 言語切替アイコン有</label>
+    <label class="html-switcher-label"><input type="checkbox" id="html-language-switcher"> Show language switcher</label>
     <p id="html-language-note"></p>
   </div>
-  <div class="html-export-tabs" role="tablist" aria-label="HTMLの出力方法">
-    <button id="html-single-tab" role="tab" aria-selected="true" aria-controls="html-single-panel">単一出力</button>
-    <button id="html-batch-tab" role="tab" aria-selected="false" aria-controls="html-batch-panel" tabindex="-1">一括出力</button>
+  <div class="html-export-tabs" role="tablist" aria-label="HTML export mode">
+    <button id="html-single-tab" role="tab" aria-selected="true" aria-controls="html-single-panel">Single export</button>
+    <button id="html-batch-tab" role="tab" aria-selected="false" aria-controls="html-batch-panel" tabindex="-1">Batch export</button>
   </div>
   <section id="html-single-panel" role="tabpanel" aria-labelledby="html-single-tab">
-    <label class="batch-output-label" for="html-source">対象フロー</label>
-    <div class="batch-output"><input id="html-source" placeholder="フローを選択してください" readonly><button class="button" id="html-source-select">フロー選択</button></div>
-    <p class="batch-note">現在のフローは確定済みの編集を含めて出力します。別のフローを選ぶと、そのファイルの保存済み内容を使います。</p>
+    <label class="batch-output-label" for="html-source">Source flow</label>
+    <div class="batch-output"><input id="html-source" placeholder="Select a flow" readonly><button class="button" id="html-source-select">Select flow</button></div>
+    <p class="batch-note">The current flow includes confirmed edits. Selecting another flow uses its saved contents.</p>
     <p id="html-single-error" role="alert" hidden></p>
-    <div class="batch-footer"><span id="html-single-status" role="status" aria-live="polite"></span><button class="button primary" id="html-single-save">HTMLを出力</button></div>
+    <div class="batch-footer"><span id="html-single-status" role="status" aria-live="polite"></span><button class="button primary" id="html-single-save">Export HTML</button></div>
   </section>
   <section id="html-batch-panel" role="tabpanel" aria-labelledby="html-batch-tab" hidden>
-  <p class="batch-intro">複数のフローを、単独で開ける閲覧用HTMLに変換します。</p>
-  <div id="batch-drop" tabindex="0" role="button" aria-label="フローファイルを追加">
+  <p class="batch-intro">Convert multiple flows to standalone HTML files for viewing.</p>
+  <div id="batch-drop" tabindex="0" role="button" aria-label="Add flow files">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg>
-    <strong>フローファイルをここにドロップ</strong><span>.tfl / .tflx・複数ファイル対応</span>
+    <strong>Drop flow files here</strong><span>.tfl / .tflx · Multiple files supported</span>
   </div>
-  <div class="batch-input-actions"><button class="button" id="batch-files">ファイル指定</button><button class="button" id="batch-folder">フォルダー指定</button><label><input type="checkbox" id="batch-recursive" checked> サブフォルダーも含める</label></div>
-  <div class="batch-list-heading"><strong id="batch-count">対象ファイル 0件</strong><button class="batch-clear" id="batch-clear" disabled>リストをクリア</button></div>
-  <ul id="batch-list" aria-label="変換するフロー"><li class="batch-empty">ファイルを追加してください。</li></ul>
-  <label class="batch-output-label" for="batch-output">出力先フォルダー</label>
-  <div class="batch-output"><input id="batch-output" placeholder="出力先を選択してください" readonly><button class="button" id="batch-destination">フォルダー指定</button></div>
-  <p class="batch-note">同名のHTMLは上書きします。変換には選択したファイルの保存済み内容を使います。</p>
+  <div class="batch-input-actions"><button class="button" id="batch-files">Choose files</button><button class="button" id="batch-folder">Choose folder</button><label><input type="checkbox" id="batch-recursive" checked> Include subfolders</label></div>
+  <div class="batch-list-heading"><strong id="batch-count">Files: 0</strong><button class="batch-clear" id="batch-clear" disabled>Clear list</button></div>
+  <ul id="batch-list" aria-label="Flows to convert"><li class="batch-empty">Add files to get started.</li></ul>
+  <label class="batch-output-label" for="batch-output">Destination folder</label>
+  <div class="batch-output"><input id="batch-output" placeholder="Choose a destination" readonly><button class="button" id="batch-destination">Choose folder</button></div>
+  <p class="batch-note">Existing HTML files with the same name are overwritten. Conversion uses the saved contents of each selected file.</p>
   <p id="batch-error" role="alert" hidden></p>
-  <div class="batch-footer"><span id="batch-progress" role="status" aria-live="polite">対象ファイルと出力先を選んでください。</span><button class="button" id="batch-stop" hidden>このファイルまでで停止</button><button class="button primary" id="batch-start" disabled>HTML一括出力</button></div>
+  <div class="batch-footer"><span id="batch-progress" role="status" aria-live="polite">Choose files and a destination folder.</span><button class="button" id="batch-stop" hidden>Stop after this file</button><button class="button primary" id="batch-start" disabled>Batch export HTML</button></div>
   </section>
 </dialog>
-<dialog id="file-error-dialog"><div class="dialog-heading"><h2>フローを開けませんでした</h2><button class="icon-button" id="close-file-error" aria-label="エラーを閉じる">×</button></div><p id="file-error-message"></p><button class="button primary" id="file-error-ok">OK</button></dialog>
+<dialog id="file-error-dialog"><div class="dialog-heading"><h2>Could not open flow</h2><button class="icon-button" id="close-file-error" aria-label="Close error">×</button></div><p id="file-error-message"></p><button class="button primary" id="file-error-ok">OK</button></dialog>
 <div id="formula-backdrop" hidden></div>
 <dialog id="formula-dialog" aria-labelledby="formula-dialog-title">
-  <h2 id="formula-dialog-title" class="sr-only">計算式</h2>
+  <h2 id="formula-dialog-title" class="sr-only">Formula</h2>
   <div class="formula-dialog-toolbar">
-    <div class="formula-tabs" role="tablist" aria-label="計算式の表示方法">
-      <button id="formula-original-tab" role="tab" data-formula-mode="original" aria-controls="formula-full" aria-selected="true">原文</button>
-      <button id="formula-formatted-tab" role="tab" data-formula-mode="formatted" aria-controls="formula-full" aria-selected="false" tabindex="-1">自動整形</button>
+    <div class="formula-tabs" role="tablist" aria-label="Formula display mode">
+      <button id="formula-original-tab" role="tab" data-formula-mode="original" aria-controls="formula-full" aria-selected="true">Original</button>
+      <button id="formula-formatted-tab" role="tab" data-formula-mode="formatted" aria-controls="formula-full" aria-selected="false" tabindex="-1">Formatted</button>
     </div>
-    <button class="formula-tool" id="copy-formula" title="表示中の計算式をコピー" aria-label="表示中の計算式をコピー"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 12H3V3h9v4M8 8h9v9H8z"/></svg></button>
-    <button class="button primary" id="save-formula" hidden>変更を確定</button>
-    <button class="icon-button" id="close-formula" aria-label="計算式を閉じる" title="閉じる">×</button>
+    <button class="formula-tool" id="copy-formula" title="Copy displayed formula" aria-label="Copy displayed formula"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 12H3V3h9v4M8 8h9v9H8z"/></svg></button>
+    <button class="button primary" id="save-formula" hidden>Confirm changes</button>
+    <button class="icon-button" id="close-formula" aria-label="Close formula" title="Close">×</button>
   </div>
   <p id="formula-save-error" role="alert" hidden></p>
-  <pre id="formula-full" class="code" role="region" aria-label="計算式" contenteditable="false" spellcheck="false" tabindex="0"></pre>
+  <pre id="formula-full" class="code" role="region" aria-label="Formula" contenteditable="false" spellcheck="false" tabindex="0"></pre>
 </dialog>
 <dialog id="run-dialog" aria-labelledby="run-title">
-  <div class="dialog-heading"><h2 id="run-title">フローを実行</h2><button class="icon-button" id="close-run" aria-label="実行画面を閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="run-title">Run flow</h2><button class="icon-button" id="close-run" aria-label="Close run dialog">×</button></div>
   <p id="run-flow-name"></p>
   <div class="run-settings">
-    <label for="run-cli">Tableau Prep Builder</label><div><input id="run-cli" readonly placeholder="見つかりません。実行ファイルを選択してください"><button class="button" id="run-pick-cli">変更</button></div>
-    <label for="run-credentials">認証ファイル（任意）</label><div><input id="run-credentials" readonly placeholder="データベースやサーバー接続に必要な場合のみ"><button class="button" id="run-pick-credentials">選択</button><button class="button" id="run-clear-credentials" aria-label="認証ファイルの選択を解除">解除</button></div>
+    <label for="run-cli">Tableau Prep Builder</label><div><input id="run-cli" readonly placeholder="Not found. Select the executable."><button class="button" id="run-pick-cli">Change</button></div>
+    <label for="run-credentials">Credentials file (optional)</label><div><input id="run-credentials" readonly placeholder="Only if required for database or server connections"><button class="button" id="run-pick-credentials">Select</button><button class="button" id="run-clear-credentials" aria-label="Clear credentials file">Clear</button></div>
   </div>
-  <div class="run-list-heading"><h3 id="run-output-count">出力ステップ</h3><button class="button primary" id="run-all" disabled>すべて実行</button></div>
-  <ul id="run-outputs" aria-label="実行する出力ステップ"></ul>
-  <p class="run-note">確定済みの編集を含めて実行します。元フローは変更しません。出力先のデータはフローに設定された書き込み方法で更新します。</p>
+  <div class="run-list-heading"><h3 id="run-output-count">Output steps</h3><button class="button primary" id="run-all" disabled>Run all</button></div>
+  <ul id="run-outputs" aria-label="Output steps to run"></ul>
+  <p class="run-note">Runs with confirmed edits without changing the original flow. Destination data is updated using the flow's write options.</p>
   <p id="run-error" role="alert" hidden></p>
-  <button class="button" id="run-last-result" hidden>前回の実行結果</button>
+  <button class="button" id="run-last-result" hidden>Last run result</button>
 </dialog>
 <dialog id="run-progress-dialog" aria-labelledby="run-progress-title">
-  <div class="dialog-heading"><h2 id="run-progress-title">フローの実行状況</h2><button class="icon-button" id="close-run-progress" aria-label="実行結果を閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="run-progress-title">Flow execution progress</h2><button class="icon-button" id="close-run-progress" aria-label="Close run results">×</button></div>
   <p id="run-progress-name"></p>
-  <div class="run-progress-summary"><div><span id="run-spinner" aria-hidden="true"></span><strong id="run-status" role="status" aria-live="polite">実行中…</strong></div><div class="run-duration"><span id="run-time-label">経過時間</span><strong id="run-time">00:00:00</strong></div></div>
+  <div class="run-progress-summary"><div><span id="run-spinner" aria-hidden="true"></span><strong id="run-status" role="status" aria-live="polite">Running…</strong></div><div class="run-duration"><span id="run-time-label">Elapsed time</span><strong id="run-time">00:00:00</strong></div></div>
   <p id="run-progress-targets"></p>
   <p id="run-progress-error" role="alert" hidden></p>
-  <h3>実行ログ</h3>
-  <div id="run-log" role="log" aria-label="フロー実行ログ" tabindex="0"></div>
-  <div class="run-progress-footer"><p id="run-cancel-note">キャンセルは実行プロセスを停止します。書き込み済みのデータは元に戻りません。</p><button class="button" id="run-cancel">キャンセル</button><button class="button primary" id="run-progress-done" hidden>閉じる</button></div>
+  <h3>Execution log</h3>
+  <div id="run-log" role="log" aria-label="Flow execution log" tabindex="0"></div>
+  <div class="run-progress-footer"><p id="run-cancel-note">Cancel stops the execution process. Data already written is not rolled back.</p><button class="button" id="run-cancel">Cancel</button><button class="button primary" id="run-progress-done" hidden>Close</button></div>
 </dialog>
 <dialog id="output-dialog" aria-labelledby="output-title">
-  <div class="dialog-heading"><h2 id="output-title">出力先を編集</h2><button class="icon-button" id="close-output" aria-label="出力先の編集を閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="output-title">Edit output destination</h2><button class="icon-button" id="close-output" aria-label="Close output editor">×</button></div>
   <p id="output-step-name"></p>
   <form id="output-form" autocomplete="off">
-    <div class="output-edit-row"><label for="output-target">出力先</label><select id="output-target"><option value="file">ファイル</option><option value="server">Tableau Server</option></select></div>
+    <div class="output-edit-row"><label for="output-target">Destination</label><select id="output-target"><option value="file">File</option><option value="server">Tableau Server</option></select></div>
     <div id="output-file-fields">
-      <div class="output-edit-row"><label for="output-format">出力タイプ</label><select id="output-format"><option value="hyper">Hyper (.hyper)</option><option value="csv">CSV (.csv)</option><option value="excel">Excel (.xlsx)</option></select></div>
-      <div class="output-edit-row"><label for="output-folder">出力パス</label><div class="output-edit-inline"><input id="output-folder" placeholder="保存先フォルダー（空欄はフローと同じ場所）"><button type="button" class="button" id="output-pick-folder">選択</button></div></div>
-      <div class="output-edit-row" id="output-sheet-row" hidden><label for="output-sheet">シート名</label><input id="output-sheet" value="Sheet1"></div>
+      <div class="output-edit-row"><label for="output-format">Output type</label><select id="output-format"><option value="hyper">Hyper (.hyper)</option><option value="csv">CSV (.csv)</option><option value="excel">Excel (.xlsx)</option></select></div>
+      <div class="output-edit-row"><label for="output-folder">Output path</label><div class="output-edit-inline"><input id="output-folder" placeholder="Destination folder (blank: same as flow)"><button type="button" class="button" id="output-pick-folder">Select</button></div></div>
+      <div class="output-edit-row" id="output-sheet-row" hidden><label for="output-sheet">Sheet name</label><input id="output-sheet" value="Sheet1"></div>
     </div>
     <div id="output-server-fields" hidden>
       <div class="output-edit-row"><label for="output-server">Server URL</label><input id="output-server" placeholder="https://tableau.example.com"></div>
-      <div class="output-edit-row"><span>サイト</span><span>既定（Default）</span></div>
-      <div class="output-edit-row"><label for="output-project">プロジェクトパス</label><input id="output-project" placeholder="親プロジェクト/子プロジェクト"></div>
-      <div class="output-project-actions"><button type="button" class="button" id="output-verify">プロジェクトを確認</button><button type="button" class="button" id="output-auth">認証情報を設定</button></div>
+      <div class="output-edit-row"><span>Site</span><span>Default</span></div>
+      <div class="output-edit-row"><label for="output-project">Project path</label><input id="output-project" placeholder="Parent project/Child project"></div>
+      <div class="output-project-actions"><button type="button" class="button" id="output-verify">Verify project</button><button type="button" class="button" id="output-auth">Set up credentials</button></div>
       <p id="output-project-status" role="status"></p>
-      <p class="output-edit-note">パブリッシュと共通のトークンで、既定サイトのプロジェクトを照会します。</p>
+      <p class="output-edit-note">Uses the publishing token to look up projects on the default site.</p>
     </div>
-    <div class="output-edit-row"><label for="output-name" id="output-name-label">ファイル名（拡張子なし）</label><div class="output-edit-inline"><input id="output-name" required><span id="output-extension"></span></div></div>
-    <section class="output-writing"><h3>書き込みオプション（変更不可）</h3><p id="output-writing"></p></section>
-    <p class="output-edit-note">「変更を確定」で反映します。×・キャンセルで閉じると、ここでの変更は破棄します。</p>
+    <div class="output-edit-row"><label for="output-name" id="output-name-label">File name (without extension)</label><div class="output-edit-inline"><input id="output-name" required><span id="output-extension"></span></div></div>
+    <section class="output-writing"><h3>Write options (read-only)</h3><p id="output-writing"></p></section>
+    <p class="output-edit-note">Select Confirm changes to apply. Closing with × or Cancel discards these edits.</p>
     <p id="output-error" role="alert" hidden></p>
-    <div class="output-edit-footer"><button class="button" id="output-cancel" type="button">キャンセル</button><button class="button primary" id="output-confirm" type="submit">変更を確定</button></div>
+    <div class="output-edit-footer"><button class="button" id="output-cancel" type="button">Cancel</button><button class="button primary" id="output-confirm" type="submit">Confirm changes</button></div>
   </form>
 </dialog>
 <dialog id="publish-dialog" aria-labelledby="publish-title">
-  <div class="dialog-heading"><h2 id="publish-title">Tableau Serverへパブリッシュ</h2><button class="icon-button" id="close-publish" aria-label="閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="publish-title">Publish to Tableau Server</h2><button class="icon-button" id="close-publish" aria-label="Close">×</button></div>
   <form id="publish-form" autocomplete="off">
     <div class="publish-fields">
       <label for="publish-server">Server URL</label><input id="publish-server" type="url" placeholder="https://tableau.example.com" required>
-      <label for="publish-token-name">トークン名</label><input id="publish-token-name" required>
-      <label for="publish-token-value">トークン値</label><input id="publish-token-value" type="password" autocomplete="new-password" required>
+      <label for="publish-token-name">Token name</label><input id="publish-token-name" required>
+      <label for="publish-token-value">Token secret</label><input id="publish-token-value" type="password" autocomplete="new-password" required>
     </div>
-    <div class="publish-actions publish-auth-actions"><button class="button" id="test-publish-auth" type="button">認証テスト</button></div>
+    <div class="publish-actions publish-auth-actions"><button class="button" id="test-publish-auth" type="button">Test authentication</button></div>
     <div class="publish-fields">
-      <label for="publish-name">パブリッシュ名</label><input id="publish-name">
-      <label for="publish-project">パブリッシュ先</label><input id="publish-project" placeholder="親プロジェクト/子プロジェクト">
+      <label for="publish-name">Publish name</label><input id="publish-name">
+      <label for="publish-project">Publish destination</label><input id="publish-project" placeholder="Parent project/Child project">
     </div>
-    <p class="publish-note">確定済みの編集を含めて公開します。同じ公開先・名前のフローは上書きします。</p>
-    <div class="publish-actions"><button class="button primary" id="start-publish" type="submit">パブリッシュ</button></div>
+    <p class="publish-note">Publishes with confirmed edits. A flow with the same name in the destination is overwritten.</p>
+    <div class="publish-actions"><button class="button primary" id="start-publish" type="submit">Publish</button></div>
   </form>
-  <h3 class="publish-log-heading">実行ログ</h3><div id="publish-log" role="log" aria-live="polite" aria-label="パブリッシュ実行ログ"></div>
+  <h3 class="publish-log-heading">Execution log</h3><div id="publish-log" role="log" aria-live="polite" aria-label="Publishing log"></div>
 </dialog>
 <script id="server-config" type="application/json">{}</script>
 <script id="flow-data" type="application/json">__FLOW_DATA__</script>

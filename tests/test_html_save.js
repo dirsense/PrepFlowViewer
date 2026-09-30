@@ -54,9 +54,9 @@ const run = (code) => vm.runInContext(code, context);
   assert.match(element('html-language-options').innerHTML, /type="radio"/);
   assert.doesNotMatch(element('html-language-options').innerHTML, /html-export-all/);
   assert.deepEqual(JSON.parse(JSON.stringify(context.htmlExportOptions())), {
-    languages: ['ja'],
+    languages: ['en'],
     showSwitcher: false,
-    defaultLanguage: 'ja',
+    defaultLanguage: 'en',
   });
   element('html-language-switcher').checked = true;
   element('html-language-switcher').onchange();
@@ -64,7 +64,7 @@ const run = (code) => vm.runInContext(code, context);
   assert.match(element('html-language-options').innerHTML, /html-export-all/);
   element('html-language-options').onchange({ target: { name: 'html-export-all', checked: true } });
   assert.equal(run('htmlExportState.languages.length'), 6);
-  assert.equal(element('html-language-summary').textContent, '全選択');
+  assert.equal(element('html-language-summary').textContent, 'Select all');
   element('html-language-options').onchange({
     target: { name: 'html-export-language', value: 'fr', checked: false },
   });
@@ -95,9 +95,9 @@ const run = (code) => vm.runInContext(code, context);
   );
   context.setHtmlExportTab('single');
   for (const [ok, result, expected] of [
-    [true, { name: 'flow.html' }, 'flow.html を出力しました'],
+    [true, { name: 'flow.html' }, 'Exported flow.html'],
     [true, { cancelled: true }, null],
-    [false, { error: '保存できません' }, null],
+    [false, { error: 'Cannot save' }, null],
   ]) {
     messages.length = 0;
     context.fetch = async (url, request) => {
@@ -105,7 +105,7 @@ const run = (code) => vm.runInContext(code, context);
       assert.equal(request.headers.get('X-Viewer-Token'), 'token');
       assert.deepEqual(JSON.parse(request.body), {
         exportKey: 'snapshot',
-        htmlOptions: { languages: ['ja'], showSwitcher: false, defaultLanguage: 'ja' },
+        htmlOptions: { languages: ['en'], showSwitcher: false, defaultLanguage: 'en' },
       });
       assert.equal(context.flowEditBusy, true);
       assert.equal(element('html-single-tab').disabled, true);

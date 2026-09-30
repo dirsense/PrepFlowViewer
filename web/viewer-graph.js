@@ -1,4 +1,4 @@
-// フローマップのアイコン、配置、コメント、拡大・縮小。
+// Flow diagram icons, positions, comments and zoom.
 
 function joinRegions(type) {
   return {
@@ -59,7 +59,7 @@ function pivotDirection(n) {
 const ANNOTATIONS = uiLabels([
   {
     key: 'calculate',
-    label: '計算フィールド',
+    label: 'Calculated field',
     types: [
       'AddColumn',
       'QuickCalcColumn',
@@ -70,7 +70,7 @@ const ANNOTATIONS = uiLabels([
   },
   {
     key: 'filter',
-    label: 'フィルター',
+    label: 'Filter',
     types: [
       'Filter',
       'FilterOperation',
@@ -83,12 +83,12 @@ const ANNOTATIONS = uiLabels([
   },
   {
     key: 'remove',
-    label: 'フィールドを削除',
+    label: 'Remove fields',
     types: ['RemoveColumns', 'RemoveColumn', 'KeepOnlyColumns'],
   },
-  { key: 'group', label: '値のグループ化・置換', types: ['Remap', 'MergeColumns'] },
-  { key: 'rename', label: 'フィールド名を変更', types: ['RenameColumn', 'BulkRenameColumns'] },
-  { key: 'type', label: 'データ型を変更', types: ['ChangeColumnType'] },
+  { key: 'group', label: 'Group and replace values', types: ['Remap', 'MergeColumns'] },
+  { key: 'rename', label: 'Rename field', types: ['RenameColumn', 'BulkRenameColumns'] },
+  { key: 'type', label: 'Change data type', types: ['ChangeColumnType'] },
 ]);
 
 function annotationIcons(n) {
@@ -147,7 +147,7 @@ function renderGraph() {
       const p = positions.get(n.id),
         comment = layout.comments.get(n.id),
         open = expandedComments.has(n.id);
-      return `<g transform="translate(${p.x} ${p.y})"><g class="comment-toggle ${open ? 'expanded' : ''}" data-comment-toggle="${esc(n.id)}" role="button" tabindex="0" aria-label="${esc(n.name + ui('のコメントを') + (open ? ui('非表示') : ui('表示')))}" aria-expanded="${open}" aria-controls="comment-${esc(n.id)}" transform="translate(56 23)"><rect x="-3" y="-3" width="23" height="23" rx="3"/><path d="M2 2h12v9H8l-4 4v-4H2Z"/></g><text id="comment-${esc(n.id)}" class="step-comment" style="font-size:${commentFont}px" x="-70" y="${commentTop}" ${open ? '' : 'display="none"'}>${comment ? comment.lines.map((line, i) => `<tspan x="-70" dy="${i ? commentLineHeight : 0}">${esc(line) || '&#8203;'}</tspan>`).join('') : ''}</text></g>`;
+      return `<g transform="translate(${p.x} ${p.y})"><g class="comment-toggle ${open ? 'expanded' : ''}" data-comment-toggle="${esc(n.id)}" role="button" tabindex="0" aria-label="${esc(n.name + ui(' comment: ') + (open ? ui('Hide') : ui('Show')))}" aria-expanded="${open}" aria-controls="comment-${esc(n.id)}" transform="translate(56 23)"><rect x="-3" y="-3" width="23" height="23" rx="3"/><path d="M2 2h12v9H8l-4 4v-4H2Z"/></g><text id="comment-${esc(n.id)}" class="step-comment" style="font-size:${commentFont}px" x="-70" y="${commentTop}" ${open ? '' : 'display="none"'}>${comment ? comment.lines.map((line, i) => `<tspan x="-70" dy="${i ? commentLineHeight : 0}">${esc(line) || '&#8203;'}</tspan>`).join('') : ''}</text></g>`;
     })
     .join('');
   highlightGraph();

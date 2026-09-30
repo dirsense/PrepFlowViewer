@@ -114,7 +114,7 @@ async function outputRequest(action, data = {}) {
     }),
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || ui('出力設定を確認できませんでした。'));
+  if (!response.ok) throw new Error(result.error || ui('Could not load output settings.'));
   return result;
 }
 
@@ -147,7 +147,7 @@ function renderOutputEditor() {
   $('output-server-fields').hidden = !server;
   $('output-sheet-row').hidden = value.format !== 'excel';
   uiBind($('output-name-label'), 'textContent', () =>
-    server ? ui('データソース名') : ui('ファイル名（拡張子なし）'),
+    server ? ui('Data source name') : ui('File name (without extension)'),
   );
   $('output-extension').textContent = server
     ? ''
@@ -160,10 +160,10 @@ function renderOutputEditor() {
   $('output-verify').disabled = outputEditor.busy || outputEditor.checking;
   uiBind($('output-project-status'), 'textContent', () =>
     outputEditor.checking
-      ? ui('プロジェクトを確認中…')
+      ? ui('Verifying project…')
       : outputEditor.verified
-        ? ui`確認済み · プロジェクトID: ${outputEditor.verified.projectId}`
-        : ui('プロジェクトは未確認です。'),
+        ? ui`Verified · Project ID: ${outputEditor.verified.projectId}`
+        : ui('Project not yet verified.'),
   );
 }
 
@@ -249,10 +249,10 @@ async function openOutputEditor(stepId) {
         (p) => p?.nodePropertyType === '.v2020_2_1.OutputRefreshOptions',
       ) || {};
     const labels = uiLabels({
-      outputOperationTypeCreate: 'テーブルの作成',
-      outputOperationTypeAppend: 'テーブルに追加',
-      outputOperationTypeTruncate: 'データの置換',
-      outputOperationTypeUpsert: 'データの更新と挿入',
+      outputOperationTypeCreate: 'Create table',
+      outputOperationTypeAppend: 'Append to table',
+      outputOperationTypeTruncate: 'Replace data',
+      outputOperationTypeUpsert: 'Update and insert data',
     });
     const mode =
       options.outputOperationType ||
@@ -261,11 +261,11 @@ async function openOutputEditor(stepId) {
       $('output-writing'),
       'textContent',
       () =>
-        ui`完全更新: ${labels[mode] || mode}` +
+        ui`Full refresh: ${labels[mode] || mode}` +
         (options.incrementalOutputOperationType
-          ? ui` ／ 増分更新: ${labels[options.incrementalOutputOperationType] || options.incrementalOutputOperationType}`
+          ? ui` / Incremental refresh: ${labels[options.incrementalOutputOperationType] || options.incrementalOutputOperationType}`
           : '') +
-        (options.isIncrementalDefault ? ui(' ／ 既定: 増分更新') : ''),
+        (options.isIncrementalDefault ? ui(' / Default: incremental refresh') : ''),
     );
   } catch (error) {
     outputError(error.message);
@@ -302,7 +302,7 @@ async function confirmOutputEdit(event) {
     activeTab = 'settings';
     renderDetail();
     uiBind($('status-text'), 'textContent', () =>
-      ui('出力先の変更を確定しました · ファイルには未保存'),
+      ui('Output changes confirmed · Not yet saved to file'),
     );
     outputBusy(false);
     closeOutputEditor();
@@ -353,7 +353,7 @@ function setupOutputEditor() {
     if (url) $('publish-server').value = url;
     publishLog(
       ui(
-        '出力先の確認には「認証テスト」を行い、この画面を閉じてください。フローのパブリッシュは不要です。',
+        'Select Test authentication, then close this dialog to verify the destination. You do not need to publish the flow.',
       ),
     );
   };

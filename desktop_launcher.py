@@ -66,17 +66,17 @@ class CloseGuard:
                 'typeof viewerCloseState === "function" ? viewerCloseState() : {dirty:false,busy:false}')
             set_language(state.get('language'))
             if state.get('busy'):
-                self.window.create_confirmation_dialog('PrepFlow Viewer', translate('処理中です。処理が終わってから閉じてください。'))
+                self.window.create_confirmation_dialog('PrepFlow Viewer', translate('An operation is in progress. Wait for it to finish before closing.'))
                 return
             if state.get('dirty') and not self.window.create_confirmation_dialog(
-                'PrepFlow Viewer', translate('保存していない編集があります。編集を破棄して終了しますか？')
+                'PrepFlow Viewer', translate('You have unsaved edits. Discard them and close?')
             ):
                 return
             self.allowed = True
             self.window.destroy()
         except Exception:
             if self.window.create_confirmation_dialog(
-                'PrepFlow Viewer', translate('画面の状態を確認できませんでした。保存していない編集を破棄して終了しますか？')
+                'PrepFlow Viewer', translate('Could not check the window state. Discard unsaved edits and close?')
             ):
                 self.allowed = True
                 self.window.destroy()
@@ -106,10 +106,10 @@ class NativeFlowDrop:
         try:
             path = files[0].get('pywebviewFullPath')
             if not path:
-                raise ValueError('元ファイルの場所を取得できませんでした。「フローを開く」から選択してください。')
+                raise ValueError('Could not determine the source file location. Select it using Open flow.')
             model = self.server.open_flow_path(path)
         except Exception as exc:
-            error = f'フローを開けませんでした: {exc}'
+            error = f'Could not open flow: {exc}'
         self.window.evaluate_js('finishNativeFlowDrop(' + json.dumps(model, ensure_ascii=True)
                                 + ',' + json.dumps(error, ensure_ascii=True) + ')')
 
@@ -127,7 +127,7 @@ def main():
     if os.name == 'nt' and getattr(sys, 'frozen', False):
         ctypes.windll.kernel32.SetDllDirectoryW(None)
     if args.flow and not args.flow.is_file():
-        raise ValueError('指定されたフローファイルが見つかりません。')
+        raise ValueError('The specified flow file was not found.')
     if args.no_browser:
         prepflow.serve(args.flow, args.port, False, history_path=args.history_file)
         return
@@ -143,7 +143,7 @@ def main():
         drop = NativeFlowDrop(window, server.server, url)
         window.events.loaded += drop.bind
         webview.start(gui='edgechromium', localization={
-            'global.ok': 'OK', 'global.cancel': 'キャンセル',
+            'global.ok': 'OK', 'global.cancel': 'Cancel',
         })
     finally:
         server.close()
@@ -154,6 +154,6 @@ if __name__ == '__main__':
         main()
     except Exception as exc:
         if os.name == 'nt':
-            ctypes.windll.user32.MessageBoxW(None, f'起動できませんでした。\n{exc}', 'PrepFlow Viewer', 0x10)
+            ctypes.windll.user32.MessageBoxW(None, f'Could not start the application.\n{exc}', 'PrepFlow Viewer', 0x10)
         else:
             raise

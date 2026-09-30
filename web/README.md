@@ -1,52 +1,42 @@
-# 画面コードを改修する人へ
+# UI development guide
 
-この画面は、ローカルサーバー・Windows の専用ウィンドウ・書き出した単体 HTML で共通です。まず変更したい機能に対応するファイルを開いてください。
+The same interface runs in the local server, the Windows desktop window and exported standalone HTML.
 
-## ファイルの役割
+## Files
 
-| ファイル | 担当 |
+| File | Responsibility |
 | --- | --- |
-| `viewer.html` | 画面の骨組み、ダイアログ、ボタンの ID |
-| `viewer.css` | 見た目、画面幅への対応、ダイアログの配置 |
-| `assets.json` | HTML に埋め込む JS・CSS の順序 |
-| `viewer.js` | イベントの登録と画面の起動 |
-| `viewer-state.js` | 読み込んだモデル、選択・表示状態、共通ユーティリティ |
-| `viewer-graph.js` | SVG のフローマップ、アイコン、ズーム、コメントの表示 |
-| `comment-layout.js` | コメントの配置・衝突判定・文字の収まりの計算 |
-| `viewer-navigation.js` | フローの初期化、ステップ選択、前後への移動 |
-| `viewer-detail.js` | フィールド一覧、変更カード、結合・ピボット・出力などの設定表示 |
-| `viewer-overview.js` | フロー情報、接続情報、使い方 |
-| `viewer-formula.js` | 計算式のプレビュー、編集ダイアログ、入力中の履歴 |
-| `viewer-flow-edit.js` | 変更の確定、フロー全体の Undo / Redo、フロー保存、終了判定 |
-| `formula.js` / `formula-format.js` / `formula-edit.js` | 式の字句解析、整形、履歴のデータ構造 |
-| `filter-display.js` | フィルター条件の表示用変換 |
-| `viewer-files.js` | ファイルを開く、履歴、ドロップ、単一 HTML の保存 |
-| `batch-export.js` | HTML 出力フォーム、言語の選択、一括出力 |
-| `flow-run.js` | フロー実行と進捗表示 |
-| `output-edit.js` | 出力先の編集フォームと変更の確定 |
-| `viewer-publish.js` | Tableau Server への認証・公開フォーム |
-| `i18n.js` / 各言語の JSON | 表示言語、翻訳、表示の更新 |
+| `viewer.html` / `viewer.css` | Markup, dialogs, control IDs, layout and styling |
+| `assets.json` | JavaScript and CSS embedding order |
+| `viewer.js` | Event registration and startup |
+| `viewer-state.js` | Shared model, selection, viewport and utilities |
+| `viewer-graph.js` / `comment-layout.js` | Flow diagram, icons, zoom and comment layout |
+| `viewer-navigation.js` | Initialization, selection and step navigation |
+| `viewer-detail.js` | Fields, changes and step settings |
+| `viewer-overview.js` | Flow overview, connections and help |
+| `viewer-formula.js` | Formula preview, editor and draft history |
+| `viewer-flow-edit.js` | Confirmed edits, Undo/Redo, saving and close checks |
+| `formula.js` / `formula-format.js` / `formula-edit.js` | Tokenization, formatting and editing history |
+| `filter-display.js` | Filter display formatting |
+| `viewer-files.js` / `batch-export.js` | Opening files, history, drops and HTML export |
+| `flow-run.js` / `output-edit.js` | Run progress and output editing |
+| `viewer-publish.js` | Tableau Server authentication and publishing |
+| `i18n.js` / language JSON files | Translation, language preferences and refresh |
 
-## 起動と読み込み順
+## Loading and state
 
-`prepflow.py` の `render_html()` が `assets.json` に並ぶファイルを順番に読み、`viewer.html` に埋め込みます。ビルドや外部 CDN への接続は不要で、書き出した HTML は単体で開けます。Windows 配布版も `web` フォルダーをまとめて収録します。
+`prepflow.render_html()` embeds assets in manifest order. These are ordinary scripts sharing one scope, not isolated ES modules. Place dependencies before their consumers and keep `viewer.js` last. Exported HTML is self-contained and requires no CDN or build step. Windows bundles the same `web` directory.
 
-これらは **共通スコープを使う通常のスクリプト** です。ES Modules として独立しているわけではありません。ファイルを分割しても共有状態や関数の参照を維持し、最後の `viewer.js` でイベント登録・初期化を行います。新しいファイルは `assets.json` に追加してください。特にトップレベルの変数初期化は記載順に実行されます。ほかのファイルの変数を使う初期化は、その定義より後に置きます。
+- `DATA` holds the parsed flow and `byId` indexes its steps. `selected`, `activeTab` and `overviewTab` track selection.
+- `positions`, `scale`, `offset`, `autoFit` and `expandedComments` track the viewport. Preserve them when refreshing data or language.
+- `formulaPopup.history` contains unconfirmed draft edits. Discarding a draft must not enter flow history.
+- `flowSessions` and `flowSession.history` retain confirmed edits. `confirmFormula()` updates history only after the server accepts the change. Saving the flow marks that state as saved.
+- `CAN_EDIT` comes from server configuration. Standalone exports are read-only. The server also validates request tokens, file revisions and save targets.
+- Author UI messages in English and translate them through `ui` / `uiBind`. All catalogs use English keys; `ja.json` contains Japanese translations. Keep user-authored names, formulas, comments and paths verbatim. Escape inserted HTML with `esc()`.
 
-翻訳や履歴などの補助コード → 共有状態 → 描画・操作の関数 → `viewer.js` の順です。初期化前に実行する処理を増やすときは、単体 HTML と編集可能な画面の両方で確認してください。
+## Development checks
 
-## 状態と編集の流れ
-
-- `DATA` は現在表示している解析結果、`byId` はステップ ID からモデルを探す索引です。選択中のステップとタブは `selected`、`activeTab`、`overviewTab` で管理します。
-- マップの位置・倍率は `positions`、`scale`、`offset`、`autoFit`、コメントの開閉は `expandedComments` です。データや言語の更新時に、利用者の表示位置を意図せず初期化しないようにします。
-- `formulaPopup.history` は式に入力している途中の履歴です。閉じて破棄した編集はフロー全体の履歴には入りません。
-- `flowSessions` と `flowSession.history` は確定した変更を保持します。`confirmFormula()` がサーバーへ変更を送り、成功後に履歴と画面を更新します。フロー保存が成功すると保存済み状態になります。
-- `CAN_EDIT` はサーバーから渡す設定で決まります。単体 HTML は閲覧専用です。画面側の制御に加え、サーバー側でもトークン・元ファイルの版・保存対象を検証します。
-- UI の文言は `ui` / `uiBind` で翻訳します。フロー内の名前、式、コメント、パスは利用者のデータとして保持します。HTML へ差し込むデータには `esc()` を使います。
-
-## 整形と確認
-
-開発用に Node.js 22 以降を使い、リポジトリ直下で次を実行します。配布版の利用者に Node.js は不要です。
+Use Node.js 22 or later for frontend tooling. End users do not need Node.js.
 
 ```powershell
 npm ci
@@ -56,22 +46,20 @@ npm test
 python -m unittest discover -s tests -v
 ```
 
-Python の公開処理のテストには `tableauserverclient` が必要です。既存のビルド用ライブラリが `.build-tools` にある場合は、テストを実行する端末で `$env:PYTHONPATH = (Resolve-Path .build-tools).Path` を設定できます。テストの公開・認証はモックまたはローカルの模擬サーバーを使います。
+Python publishing tests require `tableauserverclient`. When dependencies are installed in `.build-tools`, set `$env:PYTHONPATH = (Resolve-Path .build-tools).Path`. Tests use mocks or local servers rather than publishing real flows.
 
-Prettier の設定は `.prettierrc.json`、字下げと改行は `.editorconfig` です。テンプレート文字列内の HTML・SVG は表示する空白を保つため、自動で再整形しません。CSS の定義順は上書きの優先順位に影響するため、見た目を確認せずに並べ替えないでください。
+Prettier is configured in `.prettierrc.json`; whitespace conventions are in `.editorconfig`. Preserve significant whitespace in HTML/SVG template strings and CSS override order. `tests/viewer-source.cjs` parses the asset manifest and source AST, so tests do not depend on function line counts or file locations.
 
-`tests/viewer-source.cjs` は `assets.json` のコードを構文解析し、対象の関数・定数を読み出します。テストは関数が何行に収まるかや、どのファイルにあるかに依存しません。画面全体の連携は、実際にフローを開き、選択・編集の確定と破棄・Undo / Redo・保存・言語切替を操作して確認します。
+After interface changes, verify opening, selection, confirming/discarding edits, Undo/Redo, saving and language switching in both the editable interface and standalone HTML.
 
-## 操作説明を更新する場所
+## Documentation and media
 
-機能や画面を変更したら、ルートの `README.md`、`manual.html`、`DISTRIBUTION.txt` を同時に確認します。READMEは概要・ダウンロード・起動方法と開発者向けの補足に絞り、詳しい操作は `manual.html` へ集約します。内部処理の説明はこの開発ガイドや該当コードに記載します。操作ガイドの目次・画面図・折りたたみの補足・困ったときの案内は、実画面の手順と照合します。
+English is the default: `README.md`, `manual.html` and `DISTRIBUTION.txt`. Japanese editions use `.jp` in their names. Keep language links working both online and in the distribution. Detailed user instructions belong in the illustrated guides; keep the README brief.
 
-オンライン版の操作ガイドは `.github/workflows/manual-pages.yml` が `manual.html` と `manual.en.html` を公開用フォルダーへコピーし、GitHub Pagesへ配信します。mainの原本を更新すると同じURLへ自動反映します。READMEからはHTMLのソース表示ではなく、この公開URLへリンクします。READMEと操作ガイドは日英両方を更新し、英語版の画像も英語表示の実画面から撮影してください。
+`.github/workflows/manual-pages.yml` publishes both guides to GitHub Pages, with the English guide as the index. The Windows build includes `manual.html`, `manual.jp.html`, `DISTRIBUTION.txt` and `DISTRIBUTION.jp.txt`. Rebuild the ZIP after updating packaged documents.
 
-配布時は `manual.html` が `操作ガイド.html`、`DISTRIBUTION.txt` が `はじめに.txt` としてビルド先へコピーされます。英語ガイドは `manual.en.html` として同梱し、日本語へ戻るリンクを配布用のファイル名へ変更します。文書の原本を直しても、すでに作ったZIPやEXEは自動更新されません。公開するバージョンをビルドし直して、同じ内容の説明書と一緒に配布します。
+Guide figures embed PNGs with SVG annotations. Capture the actual interface in the guide's language; use English Superstore for English demonstrations. Do not add third-party community flows to the repository. Check media for local paths and connection details before publishing.
 
-操作ガイドの図は、日本語表示の実画面を切り出したPNGをHTML内へ埋め込み、SVGの赤枠と番号を重ねています。ボタンの位置や見た目が変わったら図も更新します。サンプルフローを使い、個人のパスや接続情報は写さないでください。画像の説明文と拡大表示、狭い画面、オフライン表示も確認します。図を外部ファイルに分離すると配布処理の変更も必要になるため、ガイド単体で表示できる形を保ちます。
+Update figures by matching `data-guide-image` IDs to named PNGs and `shots.json`, using `python tools/update_manual_images.py output/guide-captures --manual manual.html`. Update image dimensions and callout coordinates together. Capture at twice the display resolution and record `pixelRatio: 2`. Keep steps vertically stacked and check the normal view, enlargement, narrow screens and offline links.
 
-画像の更新は各図の `data-guide-image` と撮影データの名前を対応させ、`python tools/update_manual_images.py output/guide-captures` で行います。撮影データは同じ名前のPNGと、寸法・囲む位置・番号を持つ `shots.json` です。画像だけを掲載順で差し替えてはいけません。画像・寸法・赤枠を一緒に更新し、折りたたみ内を含む全図を、キャプションと照合して目視確認してください。
-
-図は横並びで縮小せず、手順順に縦に並べます。撮影時は2倍の解像度を使い、座標・寸法はCSSピクセル、`pixelRatio` は `2` として記録します。通常表示でもボタンの文字と番号が読める大きさを保ってください。
+`tools/build_readme_demo.py --language en --format mp4` builds English video from captured frames and a timeline under `output/readme-demo-en`. It requires Pillow and `imageio-ffmpeg`. Japanese captions are maintained separately. Upload MP4s as GitHub video attachments and put the returned URL on its own README paragraph to display playback controls.

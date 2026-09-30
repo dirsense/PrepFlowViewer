@@ -19,23 +19,23 @@ from formula_types import infer_type
 ROOT = Path(__file__).resolve().parent
 MAX_METADATA = 64 * 1024 * 1024
 TYPE_LABELS = {
-    "input": "入力", "clean": "クリーニング", "join": "結合", "union": "ユニオン",
-    "aggregate": "集計", "pivot": "ピボット", "output": "出力", "other": "その他",
+    "input": "Input", "clean": "Clean", "join": "Join", "union": "Union",
+    "aggregate": "Aggregate", "pivot": "Pivot", "output": "Output", "other": "Other",
 }
 ACTION_LABELS = {
-    "AddColumn": "計算フィールド", "QuickCalcColumn": "計算フィールド", "QuickDateNameCalcColumn": "日付を変換", "DuplicateColumn": "フィールドを複製",
-    "RemoveColumn": "フィールドの削除", "RemoveColumns": "フィールドの削除", "RenameColumn": "フィールド名の変更",
-    "ChangeColumnType": "タイプを変更", "RangeFilter": "フィルター", "ValueFilter": "フィルター",
-    "Filter": "フィルター", "FilterOperation": "フィルター", "MultiRowCalc": "計算フィールド", "Remap": "値のグループ化・置換", "MergeColumns": "フィールドをマージ",
-    "SimpleJoin": "結合", "SimpleUnion": "ユニオン", "Aggregate": "集計",
-    "Unpivot": "列から行へのピボット", "UnpivotExtended": "列から行へのピボット",
-    "Pivot": "行から列へのピボット",
+    "AddColumn": "Calculated field", "QuickCalcColumn": "Calculated field", "QuickDateNameCalcColumn": "Convert date", "DuplicateColumn": "Duplicate field",
+    "RemoveColumn": "Remove fields", "RemoveColumns": "Remove fields", "RenameColumn": "Rename field",
+    "ChangeColumnType": "Change type", "RangeFilter": "Filter", "ValueFilter": "Filter",
+    "Filter": "Filter", "FilterOperation": "Filter", "MultiRowCalc": "Calculated field", "Remap": "Group and replace values", "MergeColumns": "Merge fields",
+    "SimpleJoin": "Join", "SimpleUnion": "Union", "Aggregate": "Aggregate",
+    "Unpivot": "Pivot columns to rows", "UnpivotExtended": "Pivot columns to rows",
+    "Pivot": "Pivot rows to columns",
 }
 QUICK_CALC_LABELS = {
-    "Lowercase": "小文字にする", "Uppercase": "大文字にする", "Titlecase": "タイトルケースにする",
-    "RemoveAllSpaces": "すべてのスペースを削除", "RemoveExtraSpaces": "余分なスペースを削除",
-    "RemovePunctuations": "句読点を削除", "TrimSpaces": "スペースのトリミング",
-    "RemoveLetters": "文字を削除", "RemoveNumbers": "数値を削除",
+    "Lowercase": "Convert to lowercase", "Uppercase": "Convert to uppercase", "Titlecase": "Convert to title case",
+    "RemoveAllSpaces": "Remove all spaces", "RemoveExtraSpaces": "Remove extra spaces",
+    "RemovePunctuations": "Remove punctuation", "TrimSpaces": "Trim spaces",
+    "RemoveLetters": "Remove letters", "RemoveNumbers": "Remove numbers",
 }
 
 
@@ -50,9 +50,9 @@ def action_label(node):
     if short_type(node) == "MultiRowCalc":
         calc_type = (node.get("specificRowCalc") or {}).get("calcType")
         if calc_type == "rankCalc":
-            return "ランク"
+            return "Rank"
         if calc_type == "fixedLodCalc":
-            return "LOD計算"
+            return "LOD calculation"
     return ACTION_LABELS.get(short_type(node), short_type(node))
 
 
@@ -109,11 +109,11 @@ def read_package(source):
                 candidates = [x for x in names if x == name or x.rsplit("/", 1)[-1] == name]
                 if not candidates:
                     if required:
-                        raise ValueError(f"必要な定義ファイル {name} がありません。")
+                        raise ValueError(f"Required definition file {name} is missing.")
                     return {}
                 info = z.getinfo(candidates[0])
                 if info.file_size > MAX_METADATA:
-                    raise ValueError(f"{name} の定義サイズが上限64MBを超えています。")
+                    raise ValueError(f"The definition for {name} exceeds the 64 MB limit.")
                 return json.loads(z.read(info).decode("utf-8-sig"))
             metadata = read_member("maestroMetadata")
             flow = read_member(metadata.get("flowEntryName", "flow"), True)
@@ -122,18 +122,18 @@ def read_package(source):
     else:
         if isinstance(source, Path):
             if source.stat().st_size > MAX_METADATA:
-                raise ValueError("フロー定義のサイズが上限64MBを超えています。")
+                raise ValueError("Flow definition exceeds the 64 MB limit.")
             data = source.read_bytes()
         else:
             data = source.read(MAX_METADATA + 1)
         if len(data) > MAX_METADATA:
-            raise ValueError("フロー定義が大きすぎます。")
+            raise ValueError("Flow definition is too large.")
         flow = json.loads(data.decode("utf-8-sig"))
         display, metadata = {}, {}
     if not isinstance(flow, dict) or not isinstance(flow.get("nodes"), dict):
-        raise ValueError("Tableau Prepの nodes 定義が見つかりません。")
+        raise ValueError("The Tableau Prep nodes definition was not found.")
     if not all(isinstance(n, dict) for n in flow["nodes"].values()):
-        raise ValueError("ステップ定義が正しくありません。")
+        raise ValueError("Invalid step definition.")
     return name, flow, display, metadata, entries
 
 
@@ -150,7 +150,7 @@ def expressions(node):
     result = []
     key = expression_key(node)
     if isinstance(node.get(key), str):
-        result.append({"field": node.get("columnName", "条件式"), "expression": node[key]})
+        result.append({"field": node.get("columnName", "Condition"), "expression": node[key]})
         if short_type(node) == "FilterOperation":
             result[-1]["references"] = field_ref(node[key])
     if short_type(node) == "ChangeColumnType":
@@ -164,7 +164,7 @@ def get_actions(node, warnings):
     result = []
     def add(n, phase, namespace="Default"):
         if not isinstance(n, dict):
-            warnings.append("解釈できない加工定義があります。元の定義を確認してください。")
+            warnings.append("Some transformation definitions could not be interpreted. Check the original definition.")
             return
         if "loomContainer" in n:
             for child in get_actions(n, warnings):
@@ -176,32 +176,32 @@ def get_actions(node, warnings):
                        "name": n.get("name", ""), "phase": phase, "namespace": namespace,
                        "expressions": exprs, "raw": n})
     for n in node.get("actions", []):
-        add(n, "入力の加工")
+        add(n, "Input transformation")
     for n in node.get("filters") or []:
-        add(n, "入力のフィルター")
+        add(n, "Input filter")
     if "loomContainer" in node:
         inner = node["loomContainer"].get("nodes", {})
         order, unresolved = topo_order(inner)
         if unresolved:
-            warnings.append("内部の加工順序を確定できません。循環している定義は末尾に表示します。")
+            warnings.append("Internal operation order cannot be determined. Cyclic definitions are shown last.")
         if any(len(n.get("nextNodes", [])) > 1 for n in inner.values()):
-            warnings.append("内部に分岐があります。フィールド復元は参考情報です。元の定義で分岐を確認してください。")
+            warnings.append("This step has internal branches. Reconstructed fields are estimates. Check the original definition for branches.")
         for k in order + unresolved:
-            add(inner[k], "クリーニング")
+            add(inner[k], "Clean")
     for n in node.get("beforeActionAnnotations", []):
-        add(n.get("annotationNode", {}), "処理前", n.get("namespace", "Default"))
+        add(n.get("annotationNode", {}), "Before", n.get("namespace", "Default"))
     if node.get("actionNode"):
-        add(node["actionNode"], "主処理")
+        add(node["actionNode"], "Main operation")
     for n in node.get("afterActionAnnotations", []):
-        add(n.get("annotationNode", {}), "処理後", n.get("namespace", "Default"))
+        add(n.get("annotationNode", {}), "After", n.get("namespace", "Default"))
     if not result and node.get("baseType") == "transform":
-        add(node, "加工")
+        add(node, "Transformations")
     return result
 
 
 def make_field(name, type_, origin, **extra):
     return {"name": name, "type": type_ or "unknown", "origin": origin,
-            "status": "継承", "typeSource": "定義", "expression": None, **extra}
+            "status": "Inherited", "typeSource": "Definition", "expression": None, **extra}
 
 
 def find_name(fields, name):
@@ -227,7 +227,7 @@ def pivot_details(node, fields):
                       newColumns=[c["newColumnName"] for c in node.get("newPivotColumns", []) if c.get("newColumnName")])
         sources.update([pivot, measure])
         if not result["newColumns"]:
-            result["notes"].append("新しい列名は保存されていません。")
+            result["notes"].append("New column names were not saved.")
     elif kind == "UnpivotExtended":
         group = node.get("unpivotGroup") or {}
         literal = group.get("literalColumn") or {}
@@ -247,7 +247,7 @@ def pivot_details(node, fields):
                 match = matchers.get(mode)
                 names = sorted((s for s in fields if match and match(s)), key=str.casefold)
                 if match is None:
-                    result["notes"].append("この検索条件の対象フィールドは、実行せずには確定できません。")
+                    result["notes"].append("Fields matching this pattern cannot be determined without execution.")
                 names = list(dict.fromkeys(names + info.get("additionalColumns", [])))
             sources.update(names)
             columns.append({"name": column.get("unpivotColumnName", ""), "pattern": pattern,
@@ -292,8 +292,8 @@ def apply_action(fields, op, owner, warnings, removed=None):
         name = n.get("columnName", "")
         old = fields.get(name)
         fields[name] = make_field(name, infer_type(n.get("expression"), fields),
-                                  old["origin"] if old else owner, status="変更" if old else "追加",
-                                  typeSource="推定", expression=n.get("expression"), changedAt=owner)
+                                  old["origin"] if old else owner, status="Change" if old else "Add",
+                                  typeSource="Estimated", expression=n.get("expression"), changedAt=owner)
         fields[name]["changes"] = copy.deepcopy(old.get("changes", [])) if old else []
         fields[name]["fieldKey"] = old.get("fieldKey", name) if old else "added:" + n.get("id", name)
         fields[name]["fieldOrder"] = old.get("fieldOrder", 100000) if old else 100000 + len(fields)
@@ -302,18 +302,18 @@ def apply_action(fields, op, owner, warnings, removed=None):
         target = n.get("mergedColumnName")
         sources = n.get("mergeColumnsList")
         if not isinstance(target, str) or not target or not isinstance(sources, list) or not sources or not all(isinstance(c, str) and c for c in sources):
-            warnings.append("マージ対象または出力フィールド名が保存されていません。")
+            warnings.append("Merge fields or the output field name were not saved.")
             return fields
         target = find_name(fields, target)
         names = list(dict.fromkeys([target] + [find_name(fields, c) for c in sources]))
         missing = [c for c in names if c not in fields]
         if missing:
-            warnings.append("マージ対象のフィールドを復元できません: " + "、".join(missing))
+            warnings.append("Could not reconstruct fields to merge: " + "、".join(missing))
         merged_field = copy.deepcopy(fields.get(target, make_field(target, "unknown", owner)))
         types = {fields[c]["type"] if c in fields else "unknown" for c in names}
         # The schema is known even when differing input types leave the result type uncertain.
         merged_field.update(type=next(iter(types)) if len(types) == 1 else "unknown",
-                            typeSource="推定", status="統合", changedAt=owner, expression=None)
+                            typeSource="Estimated", status="Merge", changedAt=owner, expression=None)
         merged_field.pop("expressionVariants", None)
         merged_field["origin"] = " / ".join(dict.fromkeys(fields[c]["origin"] for c in names if c in fields)) or owner
         merged_field["fieldKey"] = merged_field.get("fieldKey", "merged:" + n.get("id", target))
@@ -324,7 +324,7 @@ def apply_action(fields, op, owner, warnings, removed=None):
                 deleted = fields.pop(col)
                 record(deleted, mergedInto=target)
                 if removed is not None:
-                    removed.append({**deleted, "deleted": True, "status": "統合元", "namespace": op.get("namespace", "Default")})
+                    removed.append({**deleted, "deleted": True, "status": "Merge source", "namespace": op.get("namespace", "Default")})
         fields[target] = merged_field
     elif t in {"RemoveColumn", "RemoveColumns"}:
         columns = [n["columnName"]] if t == "RemoveColumn" and n.get("columnName") else n.get("columnNames", [])
@@ -332,16 +332,16 @@ def apply_action(fields, op, owner, warnings, removed=None):
             deleted = fields.pop(find_name(fields, col), None)
             if deleted is not None and removed is not None:
                 record(deleted)
-                removed.append({**deleted, "deleted": True, "status": "削除", "namespace": op.get("namespace", "Default")})
+                removed.append({**deleted, "deleted": True, "status": "Removed", "namespace": op.get("namespace", "Default")})
     elif t == "RenameColumn":
         if name in fields:
             new_name = n.get("rename", name)
             record(fields[name], before=name, after=new_name)
             fields = {(new_name if k == name else k):
-                      ({**v, "name": new_name, "status": "名前変更", "changedAt": owner} if k == name else v)
+                      ({**v, "name": new_name, "status": "Rename", "changedAt": owner} if k == name else v)
                       for k, v in fields.items()}
         else:
-            warnings.append(f"名前変更の対象「{name}」を復元できません。")
+            warnings.append(f"Could not reconstruct the field to rename: {name}.")
     elif t == "ChangeColumnType":
         op["typeChanges"] = []
         for col, info in n.get("fields", {}).items():
@@ -350,21 +350,21 @@ def apply_action(fields, op, owner, warnings, removed=None):
                                       "after": info.get("type", "unknown")})
             if col in fields:
                 record(fields[col], before=fields[col]["type"], after=info.get("type", "unknown"))
-                fields[col].update(type=info.get("type", "unknown"), typeSource="定義", status="型変更", changedAt=owner)
+                fields[col].update(type=info.get("type", "unknown"), typeSource="Definition", status="Change type", changedAt=owner)
                 if info.get("calc"):
                     fields[col]["expression"] = info["calc"]
             else:
-                warnings.append(f"型変更の対象「{col}」を復元できません。")
+                warnings.append(f"Could not reconstruct the field for type change: {col}.")
     elif t == "Aggregate":
         output = {}
         for spec in n.get("groupByFields", []) + n.get("aggregateFields", []):
             col = spec.get("columnName", "")
             new = spec.get("newColumnName") or col
             field = copy.deepcopy(fields.get(col, make_field(col, "unknown", owner)))
-            field.update(name=new, status="集計" if spec.get("function") else "グループ", changedAt=owner)
+            field.update(name=new, status="Aggregate" if spec.get("function") else "Group", changedAt=owner)
             if spec.get("function"):
                 field["expression"] = f"{spec['function']}([{col}])"
-                field["typeSource"] = "推定"
+                field["typeSource"] = "Estimated"
                 if spec["function"] in {"COUNT", "COUNTD"}:
                     field["type"] = "integer"
                 elif spec["function"] in {"AVG", "MEDIAN"}:
@@ -377,7 +377,7 @@ def apply_action(fields, op, owner, warnings, removed=None):
         fields = {f["name"]: copy.deepcopy(f) for f in detail["retained"]}
         def add_pivot_field(name, type_):
             if name:
-                fields[name] = make_field(name, type_, owner, status="ピボット", typeSource="推定", changedAt=owner)
+                fields[name] = make_field(name, type_, owner, status="Pivot", typeSource="Estimated", changedAt=owner)
         if t == "Pivot":
             type_ = detail["valueField"].get("type", "unknown")
             if detail["aggregation"] in {"COUNT", "COUNTD"}:
@@ -404,9 +404,9 @@ def apply_action(fields, op, owner, warnings, removed=None):
             if col in fields:
                 record(fields[col])
         if t == "Remap" and name in fields:
-            fields[name].update(status="置換", changedAt=owner)
+            fields[name].update(status="Replace", changedAt=owner)
     else:
-        warnings.append(f"{t} のフィールド変化は未対応です。設定・元の定義は表示できます。")
+        warnings.append(f"Field changes for {t} are not supported. Settings and the original definition are available.")
     return fields
 
 
@@ -430,7 +430,7 @@ def analyze(source, filename=None, package=None):
         for e in n.get("nextNodes", []):
             target = e.get("nextNodeId")
             if target not in nodes:
-                global_warnings.append(f"{n.get('name', k)} の接続先 {target} が見つかりません。")
+                global_warnings.append(f"Connection target {target} for {n.get('name', k)} was not found.")
                 continue
             edge = {"source": k, "target": target, "namespace": e.get("nextNamespace", "Default"),
                     "sourceNamespace": e.get("namespace", "Default")}
@@ -439,12 +439,12 @@ def analyze(source, filename=None, package=None):
     settings = display.get("flowDisplaySettings", {}).get("flowNodeDisplaySettings", {}) or {}
     output, schemas, depths, rows = {}, {}, {}, Counter()
     def inherit(fields):
-        return {k: {**copy.deepcopy(v), "status": "継承", "changes": []} for k, v in fields.items()}
+        return {k: {**copy.deepcopy(v), "status": "Inherited", "changes": []} for k, v in fields.items()}
     for key in order + unresolved:
         n = nodes[key]
         warnings = []
         if key in unresolved:
-            warnings.append("循環または循環に依存するステップのため、フィールドを確定できません。")
+            warnings.append("Fields cannot be determined because this step is cyclic or depends on a cycle.")
         actions = get_actions(n, warnings)
         kind = kind_of(n)
         namespaces = {}
@@ -454,16 +454,16 @@ def analyze(source, filename=None, package=None):
             if output.get(e["source"], {}).get("schemaUncertain"):
                 inherited_warnings.append(nodes[e["source"]].get("name", e["source"]))
         if inherited_warnings:
-            warnings.append("上流でフィールド構成を確定できないステップがあります: " + "、".join(inherited_warnings))
+            warnings.append("Some upstream steps have undetermined fields: " + "、".join(inherited_warnings))
         for ns, fs in namespaces.items():
             for i, (col, f) in enumerate(fs.items()):
                 f.update(fieldKey=f"{key}:{ns}:{col}", fieldOrder=i, changes=[])
         fields = copy.deepcopy(next(iter(namespaces.values()), {}))
         if kind == "input":
-            fields = {f["name"]: make_field(f["name"], f.get("type"), n.get("name", key), status="入力")
+            fields = {f["name"]: make_field(f["name"], f.get("type"), n.get("name", key), status="Input")
                       for f in n.get("fields", []) if isinstance(f, dict) and "name" in f}
             if not fields:
-                warnings.append("入力フィールドが保存されていません。データ接続なしでは取得できません。")
+                warnings.append("Input fields were not saved and cannot be retrieved without a data connection.")
             for i, (col, f) in enumerate(fields.items()):
                 f.update(fieldKey=f"{key}:{col}", fieldOrder=i, changes=[])
         input_fields = copy.deepcopy(fields)
@@ -471,10 +471,10 @@ def analyze(source, filename=None, package=None):
             input_fields = {f"{ns}:{k}": {**v, "namespace": ns} for ns, fs in namespaces.items() for k, v in fs.items()}
         removed_fields = []
         for op in actions:
-            if op["phase"] == "処理前":
+            if op["phase"] == "Before":
                 ns = op["namespace"]
                 if ns not in namespaces:
-                    warnings.append(f"処理前の入力 {ns} が見つかりません。")
+                    warnings.append(f"Pre-operation input {ns} was not found.")
                 namespaces[ns] = apply_action(namespaces.get(ns, {}), op, n.get("name", key), warnings, removed_fields)
             elif op["type"] == "SimpleJoin":
                 fields = copy.deepcopy(namespaces.get("Left", {}))
@@ -487,11 +487,11 @@ def analyze(source, filename=None, package=None):
                             complex_collisions.append(col)
                         dest = f"{col}-{i}"
                         i += 1
-                    fields[dest] = {**copy.deepcopy(f), "name": dest, "status": "結合"}
+                    fields[dest] = {**copy.deepcopy(f), "name": dest, "status": "Join"}
                 # Tableau documents -1/-2 suffixes for ordinary duplicate join fields.
                 # Only retain uncertainty for a clash with another original right-hand name.
                 if complex_collisions:
-                    warnings.append("結合の重複名と右入力の既存の連番付きフィールド名が重なるため、名前を推定しています: " + "、".join(complex_collisions))
+                    warnings.append("Field names are estimated because join duplicates overlap existing numbered names in the right input: " + "、".join(complex_collisions))
             elif op["type"] == "SimpleUnion":
                 fields = {}
                 mapping = {m["namespaceName"]: m.get("fieldMappings", {}) for m in op["raw"].get("namespaceFieldMappings", [])}
@@ -499,7 +499,7 @@ def analyze(source, filename=None, package=None):
                     for col, field in fs.items():
                         dest = mapping.get(ns, {}).get(f"[{col}]", mapping.get(ns, {}).get(col, col))
                         if not isinstance(dest, str):
-                            warnings.append("一部のユニオンのフィールド対応は未対応です。")
+                            warnings.append("Some union field mappings are not supported.")
                             dest = col
                         if dest in fields:
                             prior = fields[dest]
@@ -510,18 +510,18 @@ def analyze(source, filename=None, package=None):
                                 prior["expression"] = None
                             fields[dest]["origin"] = " / ".join(dict.fromkeys((fields[dest]["origin"] + " / " + field["origin"]).split(" / ")))
                             if fields[dest]["type"] != field["type"]:
-                                fields[dest].update(type="unknown", typeSource="未確定")
+                                fields[dest].update(type="unknown", typeSource="Undetermined")
                         else:
-                            fields[dest] = {**copy.deepcopy(field), "name": dest, "status": "統合"}
-                fields.setdefault("Table Names", make_field("Table Names", "string", n.get("name", key), status="追加", typeSource="推定"))
+                            fields[dest] = {**copy.deepcopy(field), "name": dest, "status": "Merge"}
+                fields.setdefault("Table Names", make_field("Table Names", "string", n.get("name", key), status="Add", typeSource="Estimated"))
             else:
-                if op["phase"] == "主処理" and len(namespaces) == 1:
+                if op["phase"] == "Main operation" and len(namespaces) == 1:
                     fields = copy.deepcopy(next(iter(namespaces.values())))
                 if op["type"] in {"Unpivot", "UnpivotExtended", "Pivot"}:
                     op["pivot"] = pivot_details(op["raw"], fields)
                 fields = apply_action(fields, op, n.get("name", key), warnings, removed_fields)
         if kind == "other" or ("loomContainer" in n and any(len(x.get("nextNodes", [])) > 1 for x in n["loomContainer"].get("nodes", {}).values())):
-            warnings.append("このステップの出力フィールドは参考情報です。完全な復元は保証できません。")
+            warnings.append("Output fields for this step are estimates and may be incomplete.")
         warnings = list(dict.fromkeys(warnings))
         schemas[key] = fields
         cfg = settings.get(key, {})
@@ -552,7 +552,7 @@ def analyze(source, filename=None, package=None):
                        "upstream": [e["source"] for e in incoming[key]],
                        "downstream": [e["target"] for e in edges if e["source"] == key]}
     if not settings:
-        global_warnings.append("保存された配置情報がないため、接続順に自動配置しています。")
+        global_warnings.append("No saved layout was found. Steps are arranged automatically by connection order.")
     result = {"name": name, "fileSizeBytes": file_size, "nodes": list(output.values()), "edges": edges,
               "connections": [{**c, "id": c.get("id") or key} for key, c in flow.get("connections", {}).items()],
               "parameters": flow.get("parameters", {}), "metadata": metadata,
@@ -573,17 +573,17 @@ def html_export_options(options):
     if options is None:
         options = {'languages': [language.get()], 'showSwitcher': False}
     if not isinstance(options, dict):
-        raise ValueError('HTMLの言語設定が正しくありません。')
+        raise ValueError('Invalid HTML language settings.')
     locales = options.get('languages')
     if not isinstance(locales, list) or not locales or any(
             not isinstance(locale, str) or locale not in SUPPORTED_LANGUAGES for locale in locales):
-        raise ValueError('対応言語を1つ以上選択してください。')
+        raise ValueError('Select at least one language.')
     locales = list(dict.fromkeys(locales))
     switcher = options.get('showSwitcher', False)
     if not isinstance(switcher, bool):
-        raise ValueError('HTMLの言語設定が正しくありません。')
+        raise ValueError('Invalid HTML language settings.')
     if not switcher and len(locales) != 1:
-        raise ValueError('言語切替アイコンなしの場合は、言語を1つ選択してください。')
+        raise ValueError('Select one language when the language switcher is off.')
     default = options.get('defaultLanguage', language.get())
     if default not in locales:
         default = locales[0]
@@ -601,12 +601,12 @@ def render_html(model, html_options=None):
     js = "const PREP_ICONS = " + json.dumps(icons) + ";\n"
     options = html_export_options(html_options) if html_options is not None else None
     locales = options['languages'] if options else SUPPORTED_LANGUAGES
-    catalogs = {locale: translation_catalog(locale) for locale in locales if locale != 'ja'}
+    catalogs = {locale: translation_catalog(locale) for locale in locales}
     js += 'const UI_EXPORT_OPTIONS = ' + json.dumps(options) + ';\n'
     js += "const UI_CATALOGS = " + json.dumps(catalogs, ensure_ascii=True).replace('<', '\\u003c') + ";\n"
     js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8")
                     for name in assets["scripts"])
-    template = template.replace('<html lang="ja" data-language="ja">',
+    template = template.replace('<html lang="en" data-language="en">',
                                 f'<html lang="{options["defaultLanguage"] if options else language.get()}" data-language="{options["defaultLanguage"] if options else language.get()}">', 1)
     if options:
         template = re.sub(r'<button role="menuitemradio" data-language="([^"]+)"[^>]*>.*?</button>',
@@ -652,7 +652,7 @@ def default_flow_directory():
     return documents if documents.is_dir() else Path.home()
 
 
-def choose_flow_file(title="Tableau Prep フローを開く"):
+def choose_flow_file(title="Open a Tableau Prep flow"):
     from native_dialogs import choose_file
     return choose_file(title=title, directory=default_flow_directory())
 
@@ -667,28 +667,28 @@ def apply_flow_change(flow, change):
 def apply_formula_change(flow, change):
     node = flow["nodes"].get(change.get("stepId"))
     if node is None:
-        raise ValueError("保存対象のステップが見つかりません。")
+        raise ValueError("The step to save was not found.")
     actions = [a for a in get_actions(node, []) if a["id"] == change.get("actionId")]
     if len(actions) != 1:
-        raise ValueError("保存対象の処理を一意に特定できません。")
+        raise ValueError("Cannot uniquely identify the operation to save.")
     raw = actions[0]["raw"]
     if short_type(raw) == "ChangeColumnType":
         target, key = raw.get("fields", {}).get(change.get("field"), {}), "calc"
     else:
         target, key = raw, expression_key(raw)
-        if change.get("field") != raw.get("columnName", "条件式"):
-            raise ValueError("保存対象のフィールドが一致しません。")
+        if change.get("field") != raw.get("columnName", "Condition"):
+            raise ValueError("The field to save does not match.")
     if not isinstance(target.get(key), str) or target[key] != change.get("before"):
-        raise ValueError("計算式が読み込み時から変更されています。開き直してから保存してください。")
+        raise ValueError("The formula has changed since loading. Reopen it before saving.")
     expression = change.get("expression")
     if not isinstance(expression, str) or not expression.strip() or len(expression.encode("utf-8")) > 1024**2:
-        raise ValueError("計算式は空にせず、1MB以内で入力してください。")
+        raise ValueError("Enter a non-empty formula of at most 1 MB.")
     target[key] = expression
 
 
 def choose_save_file(path, name, temporary=False):
     from native_dialogs import choose_file
-    return choose_file(title="フローの変更を保存", save=True,
+    return choose_file(title="Save flow changes", save=True,
                        directory=default_flow_directory() if temporary else Path(path).parent,
                        filename=Path(name).name)
 
@@ -718,9 +718,9 @@ def save_formula_file(path, revision, change, destination=None):
     path = Path(path)
     destination = Path(destination) if destination else path
     if destination.suffix.lower() != path.suffix.lower():
-        raise ValueError("元のフローと同じ拡張子で保存してください。")
+        raise ValueError("Save using the same extension as the original flow.")
     if file_revision(path) != revision:
-        raise ValueError("ファイルが別の場所で変更されています。開き直してから保存してください。")
+        raise ValueError("The file was modified elsewhere. Reopen it before saving.")
     destination_revision = file_revision(destination) if destination.exists() else None
     _, flow, _, metadata, _ = read_package(path)
     for edit in change if isinstance(change, list) else [change]:
@@ -735,7 +735,7 @@ def save_formula_file(path, revision, change, destination=None):
                 entry = metadata.get("flowEntryName", "flow")
                 candidates = [i for i in original.infolist() if i.filename == entry or i.filename.rsplit("/", 1)[-1] == entry]
                 if len(candidates) != 1:
-                    raise ValueError("書き換えるフロー定義を一意に特定できません。")
+                    raise ValueError("Cannot uniquely identify the flow definition to update.")
                 updated.comment = original.comment
                 for info in original.infolist():
                     clone = copy.copy(info)
@@ -751,9 +751,9 @@ def save_formula_file(path, revision, change, destination=None):
             os.fsync(stream.fileno())
         shutil.copymode(path, temporary)
         if file_revision(path) != revision:
-            raise ValueError("保存中に元ファイルが変更されました。上書きせず中止しました。")
+            raise ValueError("The original file changed while saving. Saving was cancelled without overwriting it.")
         if (file_revision(destination) if destination.exists() else None) != destination_revision:
-            raise ValueError("保存先が別の場所で変更されました。上書きせず中止しました。")
+            raise ValueError("The destination file changed elsewhere. Saving was cancelled without overwriting it.")
         new_revision = file_revision(temporary)
         os.replace(temporary, destination)
         return result, new_revision
@@ -772,10 +772,10 @@ def open_source_folder(source_info):
     """Open only a registered flow's directory, never a path supplied by the page."""
     from native_explorer import worker
     if not source_info or source_info.get("temporary"):
-        raise ValueError("保存場所が未確定です。先にフローを保存してください。")
+        raise ValueError("Saved location is not yet available. Save the flow first.")
     folder = Path(source_info["path"]).resolve().parent
     if not folder.is_dir():
-        raise ValueError("保存先のフォルダーが見つかりません。移動または削除された可能性があります。")
+        raise ValueError("Destination folder not found. It may have been moved or deleted.")
     worker.open(folder)
 
 
@@ -836,9 +836,9 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
         # Also used by native drops; retain the source, not a temporary upload copy.
         path = Path(path).resolve()
         if path.suffix.lower() not in {".tfl", ".tflx"}:
-            raise ValueError(".tflx または .tfl ファイルを選択してください。")
+            raise ValueError("Select a .tflx or .tfl file.")
         if not path.is_file():
-            raise ValueError("フローファイルが見つかりません。移動または削除されていないか確認してください。")
+            raise ValueError("Flow file not found. Check whether it was moved or deleted.")
         result = analyze(path)
         result["sampleName"] = next((name for name, p in sample_files().items() if p.resolve() == path), None)
         register_export(result, path)
@@ -849,7 +849,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
         model, path = session["model"], Path(session["path"]).resolve()
         model.update(sourcePath=str(path), recentId=recent.identity(path))
         if file_revision(path) != model["editRevision"]:
-            raise ValueError("復元対象の元ファイルが変更されています。")
+            raise ValueError("The source file to restore has changed.")
         key = model["exportKey"]
         exports[key] = model
         edit_sources[key] = {"path": path, "temporary": False, "edited": True,
@@ -867,7 +867,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 restored_flow = startup_source is None or path.resolve() != startup_source
             except (ValueError, OSError, KeyError, TypeError, RuntimeError, zipfile.BadZipFile) as exc:
                 model = empty_model()
-                model["openingError"] = f"直近のフローを読み込めませんでした: {exc}"
+                model["openingError"] = f"Could not load the last flow: {exc}"
         return render_html(model).replace(
             '<script id="server-config" type="application/json">{}</script>',
             '<script id="server-config" type="application/json">' + json.dumps({"token": token, "restoredFlow": restored_flow,
@@ -900,25 +900,25 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
             set_language(self.headers.get('X-Viewer-Language') or language_preference.get()
                          or preferred_language(self.headers.get('Accept-Language', '')))
             if not self.local_request():
-                return self.respond(403, {"error": "ローカルの画面からアクセスしてください。"})
+                return self.respond(403, {"error": "Access this from the local Viewer."})
             if self.path == "/":
                 return self.respond(200, opening_page(), "text/html; charset=utf-8")
             if self.path == "/health":
                 return self.respond(200, {"status": "ok", "app": "PrepFlowViewer"})
             if self.path == "/api/samples":
                 if not secrets.compare_digest(self.headers.get("X-Viewer-Token", ""), token):
-                    return self.respond(403, {"error": "ビューアーからアクセスしてください。"})
+                    return self.respond(403, {"error": "Access this from the Viewer."})
                 return self.respond(200, {"samples": list(sample_files())})
             if self.path == "/api/recent":
                 if not secrets.compare_digest(self.headers.get("X-Viewer-Token", ""), token):
-                    return self.respond(403, {"error": "ビューアーからアクセスしてください。"})
+                    return self.respond(403, {"error": "Access this from the Viewer."})
                 return self.respond(200, {"recent": recent.list()})
             if self.path.startswith("/export/"):
                 with export_lock:
                     model = exports.get(self.path.removeprefix("/export/"))
                 if model:
                     return self.respond(200, render_html(model).encode("utf-8"), "text/html; charset=utf-8", Path(model["name"]).stem + ".html")
-                return self.respond(404, {"error": "保存期限が切れました。フローを開き直してください。"})
+                return self.respond(404, {"error": "The save session has expired. Reopen the flow."})
             self.respond(404, {"error": "Not found"})
 
         def do_POST(self):
@@ -927,7 +927,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                          or preferred_language(self.headers.get('Accept-Language', '')))
             expected_origins = {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}
             if not self.local_request() or not secrets.compare_digest(self.headers.get("X-Viewer-Token", ""), token) or self.headers.get("Origin") not in expected_origins:
-                return self.respond(403, {"error": "起動したビューアー画面からファイルを開いてください。"})
+                return self.respond(403, {"error": "Open files from the running Viewer."})
             if self.path == '/api/language':
                 try:
                     length = int(self.headers.get('Content-Length', '0'))
@@ -937,22 +937,22 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                     language_preference.save(payload.get('language'))
                     return self.respond(200, {'language': language_preference.get()})
                 except (OSError, ValueError, AttributeError):
-                    return self.respond(400, {'error': '表示言語を保存できませんでした。'})
+                    return self.respond(400, {'error': 'Could not save the language preference.'})
             if self.path.startswith('/api/output/'):
                 try:
                     from output_edit import configuration, make_change, lookup_project
                     from tableau_publish import PublishSettings
                     length = int(self.headers.get('Content-Length', '0'))
                     if not 0 < length <= 1024**2:
-                        raise ValueError('リクエストのサイズが正しくありません。')
+                        raise ValueError('Invalid request size.')
                     payload = json.loads(self.rfile.read(length))
                     if not isinstance(payload, dict):
-                        raise ValueError('リクエストの形式が正しくありません。')
+                        raise ValueError('Invalid request format.')
                     with export_lock:
                         model = copy.deepcopy(exports.get(payload.get('exportKey')))
                     node = next((n for n in (model or {}).get('nodes', []) if n['id'] == payload.get('stepId')), None)
                     if not node or node['kind'] != 'output':
-                        raise ValueError('出力ステップを選択してください。')
+                        raise ValueError('Select an output step.')
                     if self.path == '/api/output/defaults':
                         saved = PublishSettings().load()
                         return self.respond(200, {'configuration': configuration(node['raw']),
@@ -960,11 +960,11 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                     if self.path == '/api/output/folder':
                         from native_dialogs import choose_directory
                         with picker_lock:
-                            folder = choose_directory(title='出力先フォルダーを選択')
+                            folder = choose_directory(title='Choose output folder')
                         return self.respond(200, {'folder': str(folder) if folder else None})
                     if self.path == '/api/output/project':
                         if not publish_lock.acquire(blocking=False):
-                            raise ValueError('サーバーへの処理中です。完了後に再度お試しください。')
+                            raise ValueError('A server operation is in progress. Try again after it finishes.')
                         try:
                             project = lookup_project(payload.get('server', ''), payload.get('project', ''), PublishSettings())
                         finally:
@@ -977,16 +977,16 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         return self.respond(200, {**project, 'proof': proof})
                     if self.path == '/api/output/prepare':
                         if payload.get('revision') != model.get('editRevision'):
-                            raise ValueError('フローが更新されています。開き直してください。')
+                            raise ValueError('The flow has changed. Reopen it.')
                         desired = payload.get('destination')
                         if not isinstance(desired, dict):
-                            raise ValueError('出力設定の形式が正しくありません。')
+                            raise ValueError('Invalid output settings format.')
                         if desired.get('format') == 'server':
                             with export_lock:
                                 verified = verified_projects.get(payload.get('proof'))
                             scope = {k: desired.get(k) for k in ('server', 'project', 'projectId')}
                             if verified != (payload['exportKey'], node['id'], scope):
-                                raise ValueError('プロジェクトを確認してから変更を確定してください。')
+                                raise ValueError('Verify the project before confirming changes.')
                         return self.respond(200, {'change': make_change(node['raw'], node.get('properties', {}), desired)})
                     return self.respond(404, {'error': 'Not found'})
                 except Exception as exc:
@@ -995,10 +995,10 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 try:
                     length = int(self.headers.get('Content-Length', '0'))
                     if not 0 < length <= 4 * 1024**2:
-                        raise ValueError('実行リクエストのサイズが正しくありません。')
+                        raise ValueError('Invalid execution request size.')
                     payload = json.loads(self.rfile.read(length))
                     if not isinstance(payload, dict):
-                        raise ValueError('リクエストの形式が正しくありません。')
+                        raise ValueError('Invalid request format.')
                     if self.path == '/api/run/status':
                         return self.respond(200, {'job': runner.status()})
                     if self.path == '/api/run/cancel':
@@ -1010,9 +1010,9 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         else:
                             kind = self.path.rsplit('/', 1)[-1]
                             with picker_lock:
-                                path = choose_file(title='Tableau Prepの実行ファイルを選択' if kind == 'cli' else 'CLI用の認証JSONを選択',
+                                path = choose_file(title='Choose Tableau Prep executable' if kind == 'cli' else 'Choose CLI credentials JSON',
                                     directory=runner.cli.parent if kind == 'cli' and runner.cli else default_flow_directory(),
-                                    filetypes=[('Tableau Prep CLI', 'tableau-prep-cli.bat')] if kind == 'cli' else [('認証ファイル', '*.json')])
+                                    filetypes=[('Tableau Prep CLI', 'tableau-prep-cli.bat')] if kind == 'cli' else [('Credentials file', '*.json')])
                             if path:
                                 runner.configure(kind, path)
                         return self.respond(200, runner.options())
@@ -1020,19 +1020,19 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         source_info = edit_sources.get(payload.get('exportKey'))
                         model = copy.deepcopy(exports.get(payload.get('exportKey')))
                     if not source_info or not model:
-                        raise ValueError('フローを開いてから実行してください。')
+                        raise ValueError('Open a flow before running it.')
                     if self.path == '/api/run/options':
                         confirmed_flow = {**source_info['package'][1], 'nodes': {n['id']: n['raw'] for n in model['nodes']}}
                         return self.respond(200, {**runner.options(), 'outputs': output_details(confirmed_flow)})
                     if self.path == '/api/run/start':
                         if payload.get('revision') != model.get('editRevision'):
-                            raise ValueError('フローが更新されています。開き直してください。')
+                            raise ValueError('The flow has changed. Reopen it.')
                         changes = payload.get('changes', [])
                         if not isinstance(changes, list) or len(changes) > 2000 or not all(isinstance(c, dict) for c in changes):
-                            raise ValueError('変更内容の形式が正しくありません。')
+                            raise ValueError('Invalid changes format.')
                         request_id = payload.get('requestId')
                         if not isinstance(request_id, str) or not re.fullmatch(r'[a-zA-Z0-9-]{16,80}', request_id):
-                            raise ValueError('実行リクエストを確認できません。')
+                            raise ValueError('Cannot identify the execution request.')
                         with edit_lock:
                             job = runner.start(source_info['path'], model, changes, payload.get('outputs'), request_id)
                         return self.respond(200, {'job': job})
@@ -1048,35 +1048,35 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         item = batch.upload(self.rfile, length, unquote(self.headers.get('X-File-Name', '')))
                         return self.respond(200, {'items': [item]})
                     if not 0 < length <= 1024**2:
-                        raise ValueError('リクエストのサイズが正しくありません。')
+                        raise ValueError('Invalid request size.')
                     payload = json.loads(self.rfile.read(length))
                     if not isinstance(payload, dict):
-                        raise ValueError('リクエストの形式が正しくありません。')
+                        raise ValueError('Invalid request format.')
                     if self.path == '/api/batch/files':
                         with picker_lock:
-                            paths = choose_file(title='HTMLに変換するフローを選択（複数選択可）', directory=Path.home(), multiple=True)
+                            paths = choose_file(title='Choose flows to convert to HTML (multiple selection allowed)', directory=Path.home(), multiple=True)
                         return self.respond(200, {'items': batch.add(paths or [])})
                     if self.path == '/api/batch/file':
                         with picker_lock:
-                            path = choose_flow_file('HTMLに変換するフローを選択')
+                            path = choose_flow_file('Select a flow to export as HTML')
                         if path is None:
                             return self.respond(200, {'cancelled': True})
                         items = batch.add([path])
                         if not items:
-                            raise ValueError('.tflx または .tfl を選択してください。')
+                            raise ValueError('Select a .tflx or .tfl file.')
                         return self.respond(200, {**items[0], 'path': str(path)})
                     if self.path == '/api/batch/folder':
                         with picker_lock:
-                            folder = choose_directory(title='変換元のフォルダーを選択')
+                            folder = choose_directory(title='Choose source folder')
                         return self.respond(200, {'items': batch.folder(folder, payload.get('recursive') is True) if folder else []})
                     if self.path == '/api/batch/destination':
                         with picker_lock:
-                            folder = choose_directory(title='HTMLの出力先フォルダーを選択')
+                            folder = choose_directory(title='Choose HTML destination folder')
                         return self.respond(200, batch.destination(folder) if folder else {'cancelled': True})
                     if self.path == '/api/batch/remove':
                         keys = payload.get('ids')
                         if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
-                            raise ValueError('対象ファイルが正しくありません。')
+                            raise ValueError('Invalid target files.')
                         batch.remove(keys)
                         return self.respond(200, {'removed': True})
                     if self.path == '/api/batch/convert':
@@ -1090,10 +1090,10 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 4 * 1024**2:
-                        raise ValueError("リクエストのサイズが正しくありません。")
+                        raise ValueError("Invalid request size.")
                     payload = json.loads(self.rfile.read(length))
                     if not isinstance(payload, dict):
-                        raise ValueError("リクエストの形式が正しくありません。")
+                        raise ValueError("Invalid request format.")
                     settings = PublishSettings()
                     with export_lock:
                         source_info = edit_sources.get(payload.get("exportKey"))
@@ -1108,15 +1108,15 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                     publish = self.path == "/api/publish/start"
                     if publish:
                         if not source_info or not model or payload.get('revision') != model.get('editRevision'):
-                            raise ValueError("フローを開き直してからパブリッシュしてください。")
+                            raise ValueError("Reopen the flow before publishing.")
                         for key in ('name', 'project'):
                             if not isinstance(payload.get(key), str) or not payload[key].strip() or len(payload[key]) > 4096:
-                                raise ValueError("パブリッシュ名とパブリッシュ先を入力してください。")
+                                raise ValueError("Enter a publish name and destination.")
                         changes = payload.get('changes', [])
                         if not isinstance(changes, list) or len(changes) > 2000:
-                            raise ValueError("変更内容の形式が正しくありません。")
+                            raise ValueError("Invalid changes format.")
                     if not publish_lock.acquire(blocking=False):
-                        return self.respond(409, {"error": "パブリッシュ操作を実行中です。完了までお待ちください。"})
+                        return self.respond(409, {"error": "Publishing is in progress. Please wait until it finishes."})
                 except Exception as exc:
                     return self.respond(400, {"error": safe_error(exc, values)})
                 # A line stream keeps progress visible while TSC uploads a flow.
@@ -1139,7 +1139,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         if publish:
                             with tempfile.TemporaryDirectory(prefix='prepflow-publish-') as folder:
                                 snapshot = Path(folder) / ('flow' + source_info['path'].suffix.lower())
-                                log('現在のフローを準備中（確定済みの編集を含みます）…')
+                                log('Preparing the current flow with confirmed edits…')
                                 with edit_lock:
                                     save_formula_file(source_info['path'], model['editRevision'], changes, snapshot)
                                 run_publish(values, settings, log, source=snapshot, name=payload['name'].strip(), project=payload['project'])
@@ -1159,10 +1159,10 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 4 * 1024**2:
-                        raise ValueError("保存リクエストのサイズが正しくありません。")
+                        raise ValueError("Invalid save request size.")
                     payload = json.loads(self.rfile.read(length))
                     if not isinstance(payload, dict):
-                        raise ValueError("リクエストの形式が正しくありません。")
+                        raise ValueError("Invalid request format.")
                     if self.path == '/api/save-html':
                         from native_dialogs import choose_file
                         options = html_export_options(payload.get('htmlOptions'))
@@ -1172,13 +1172,13 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                             with export_lock:
                                 model = copy.deepcopy(exports.get(payload.get('exportKey')))
                         if model is None:
-                            raise ValueError('保存期限が切れました。フローを開き直してください。')
+                            raise ValueError('The save session has expired. Reopen the flow.')
                         source = model.get('sourcePath')
                         with picker_lock:
-                            destination = choose_file(title='HTMLを出力', save=True,
+                            destination = choose_file(title='Export HTML', save=True,
                                 directory=Path(source).parent if source else default_flow_directory(),
                                 filename=Path(model['name']).stem + '.html',
-                                filetypes=[('HTML ファイル', '*.html')])
+                                filetypes=[('HTML files', '*.html')])
                         if destination is None:
                             return self.respond(200, {'cancelled': True})
                         save_html_file(model, destination, options)
@@ -1192,7 +1192,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         if self.path == "/api/recent/open":
                             path = recent.find(payload.get("id"))
                             if path is None:
-                                return self.respond(404, {"error": "フローファイルが見つかりません。移動または削除されたため、最近のフローから除外しました。"})
+                                return self.respond(404, {"error": "Flow file not found. It was removed from recent flows because it was moved or deleted."})
                         else:
                             with picker_lock:
                                 path = choose_flow_file()
@@ -1204,12 +1204,12 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         with export_lock:
                             model, source_info = exports.get(key), edit_sources.get(key)
                         if model is None or source_info is None:
-                            raise ValueError("保存元ファイルの情報がありません。フローを開き直してください。")
+                            raise ValueError("Source file information is unavailable. Reopen the flow.")
                         if payload.get("revision") != model.get("editRevision"):
-                            raise ValueError("フローが更新されています。開き直してから保存してください。")
+                            raise ValueError("The flow has changed. Reopen it before saving.")
                         changes = payload.get("changes")
                         if not isinstance(changes, list) or len(changes) > 2000:
-                            raise ValueError("変更内容の形式が正しくありません。")
+                            raise ValueError("Invalid changes format.")
                         if self.path == "/api/preview-edits":
                             package = copy.deepcopy(source_info["package"])
                             for change in changes:
@@ -1241,28 +1241,28 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length <= 8192:
-                        return self.respond(400, {"error": "サンプルを選択してください。"})
+                        return self.respond(400, {"error": "Select a sample."})
                     self.connection.settimeout(120)
                     payload = json.loads(self.rfile.read(length))
                     name = payload.get("name") if isinstance(payload, dict) else None
                     path = sample_files().get(name) if isinstance(name, str) else None
                     if path is None:
-                        return self.respond(404, {"error": "samples 内にファイルが見つかりません。一覧を開き直してください。"})
+                        return self.respond(404, {"error": "File not found in samples. Reopen the list."})
                     result = analyze(path)
                     result["sampleName"] = name
                     register_export(result, path)
                     return self.respond(200, result)
                 except (ValueError, OSError, KeyError, TypeError, AttributeError, RuntimeError, RecursionError, zipfile.BadZipFile) as exc:
-                    return self.respond(400, {"error": f"フローを読み込めませんでした: {exc}"})
+                    return self.respond(400, {"error": f"Could not load flow: {exc}"})
             if self.path != "/api/analyze":
                 return self.respond(404, {"error": "Not found"})
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0 or length > 2 * 1024**3:
-                    return self.respond(413, {"error": "空のファイル、または2GBを超えるファイルです。大きいファイルはPythonの変換コマンドを使用してください。"})
+                    return self.respond(413, {"error": "File is empty or exceeds 2 GB. Use the Python conversion command for large files."})
                 filename = unquote(self.headers.get("X-File-Name", "flow.tflx"))
                 if not filename.lower().endswith((".tflx", ".tfl")):
-                    return self.respond(400, {"error": ".tflx または .tfl を選択してください。"})
+                    return self.respond(400, {"error": "Select a .tflx or .tfl file."})
                 self.connection.settimeout(120)
                 retained = Path(uploaded_files.name) / (secrets.token_hex(16) + Path(filename).suffix)
                 with retained.open("w+b") as spool:
@@ -1270,7 +1270,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                     while remaining:
                         chunk = self.rfile.read(min(1024**2, remaining))
                         if not chunk:
-                            raise ValueError("ファイルの受信が途中で終了しました。")
+                            raise ValueError("File transfer ended unexpectedly.")
                         spool.write(chunk)
                         remaining -= len(chunk)
                     spool.seek(0)
@@ -1278,7 +1278,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                 register_export(result, retained, temporary=True)
                 self.respond(200, result)
             except (ValueError, OSError, KeyError, TypeError, AttributeError, RuntimeError, RecursionError, zipfile.BadZipFile) as exc:
-                self.respond(400, {"error": f"フローを読み込めませんでした: {exc}"})
+                self.respond(400, {"error": f"Could not load flow: {exc}"})
 
     class LocalServer(ThreadingHTTPServer):
         allow_reuse_address = False
@@ -1311,17 +1311,17 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Tableau Prepのフローをデータ接続なしでHTMLに変換します。")
+    parser = argparse.ArgumentParser(description="Convert Tableau Prep flows to HTML without connecting to data sources.")
     parser.add_argument("flow", nargs="?", type=Path)
     parser.add_argument("-o", "--output", type=Path)
-    parser.add_argument("--open", action="store_true", help="生成したHTMLをブラウザで開く")
-    parser.add_argument("--pick", action="store_true", help="ファイル選択画面を表示")
-    parser.add_argument("--serve", action="store_true", help="ドラッグ＆ドロップできるローカル画面を起動")
+    parser.add_argument("--open", action="store_true", help="Open generated HTML in a browser")
+    parser.add_argument("--pick", action="store_true", help="Show file picker")
+    parser.add_argument("--serve", action="store_true", help="Start the local drag-and-drop viewer")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--no-browser", action="store_true", help="サーバー起動時にブラウザを開かない")
+    parser.add_argument("--no-browser", action="store_true", help="Do not open a browser when starting the server")
     args = parser.parse_args()
     if args.pick:
-        selected = choose_flow_file("Tableau Prep フローを選択")
+        selected = choose_flow_file("Choose a Tableau Prep flow")
         if not selected:
             return
         args.flow = Path(selected)
@@ -1330,13 +1330,13 @@ def main():
         try:
             serve(args.flow, args.port, not args.no_browser)
         except OSError as exc:
-            parser.exit(1, f"起動できませんでした。すでに起動中なら http://127.0.0.1:{args.port} を開いてください。\n{exc}\n")
+            parser.exit(1, f"Could not start the application.If it is already running, open http://127.0.0.1:{args.port}.\n{exc}\n")
         return
     destination = args.output or ROOT / "output" / (source.stem + ".html")
     try:
         model = export(source, destination)
     except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile, RuntimeError) as exc:
-        parser.exit(1, f"読み込みに失敗しました: {exc}\n")
+        parser.exit(1, f"Could not load the file: {exc}\n")
     print(f"{destination.resolve()}\n{model['stats']['steps']} steps / {model['stats']['calculations']} calculations / {model['stats']['parseMs']} ms")
     if args.open:
         import webbrowser

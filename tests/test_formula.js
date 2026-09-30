@@ -20,13 +20,13 @@ assert.deepEqual(
   tokens.filter((t) => t.kind === 'kw').map((t) => t.text),
   ['IF', 'THEN', 'ELSE', 'END'],
 );
-assert.equal(tokenizeFormula('DATETRUNC ("month", [日付])')[0].kind, 'fn');
+assert.equal(tokenizeFormula('DATETRUNC ("month", [Date])')[0].kind, 'fn');
 for (const source of [
   "'it''s // a string'",
   '"escaped \\" // quote"',
   '/* incomplete',
   '// last line',
-  '[日本語]]名前]',
+  '[日本語]]Name]',
   '#2026-09-17#',
   '<script>alert(1)</script>',
 ]) {

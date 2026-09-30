@@ -48,9 +48,9 @@ function renderHtmlExport() {
   $('html-language-switcher').checked = state.showSwitcher;
   const allSelected = state.languages.length === UI_LANGUAGES.length;
   $('html-language-summary').textContent = allSelected
-    ? ui('全選択')
+    ? ui('Select all')
     : state.languages.map((locale) => HTML_LANGUAGE_NAMES[locale]).join(' / ') ||
-      ui('対応言語を1つ以上選択してください。');
+      ui('Select at least one language.');
   for (const input of $('html-language-options').querySelectorAll?.('input') || []) {
     input.checked =
       input.name === 'html-export-all' ? allSelected : state.languages.includes(input.value);
@@ -59,8 +59,8 @@ function renderHtmlExport() {
   }
   uiBind($('html-language-note'), 'textContent', () =>
     state.showSwitcher
-      ? ui`複数選択できます。初期表示：${HTML_LANGUAGE_NAMES[htmlExportOptions().defaultLanguage] || '—'}`
-      : ui('言語を1つ選択してください。選んだ言語だけをHTMLに含めます。'),
+      ? ui`Multiple languages allowed. Initial language: ${HTML_LANGUAGE_NAMES[htmlExportOptions().defaultLanguage] || '—'}`
+      : ui('Select one language. Only the selected language is included in the HTML.'),
   );
   for (const tab of ['single', 'batch']) {
     const selected = state.tab === tab;
@@ -73,7 +73,7 @@ function renderHtmlLanguageOptions() {
   const state = htmlExportState;
   $('html-language-options').innerHTML =
     (state.showSwitcher
-      ? `<label class="html-language-all"><input type="checkbox" name="html-export-all">${ui('全選択')}</label>`
+      ? `<label class="html-language-all"><input type="checkbox" name="html-export-all">${ui('Select all')}</label>`
       : '') +
     UI_LANGUAGES.map(
       (locale) =>
@@ -131,7 +131,7 @@ async function batchRequest(action, payload = {}) {
     body: JSON.stringify(payload),
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || ui('一括出力の処理に失敗しました。'));
+  if (!response.ok) throw new Error(result.error || ui('Batch export failed.'));
   return result;
 }
 function batchError(message = '') {
@@ -140,15 +140,15 @@ function batchError(message = '') {
 }
 function renderBatch() {
   const state = batchState;
-  uiBind($('batch-count'), 'textContent', () => ui`対象ファイル ${state.items.length}件`);
+  uiBind($('batch-count'), 'textContent', () => ui`Files: ${state.items.length}`);
   $('batch-list').innerHTML = state.items.length
     ? state.items
         .map(
           (item) =>
-            ui`<li class="batch-item ${item.status || ''}"><div><strong>${esc(item.name)}</strong><small>${esc(item.location === 'ドロップしたファイル' ? ui(item.location) : item.location)}</small>${item.message ? `<p>${esc(uiMessage(item.message))}</p>` : ''}</div><span class="batch-item-status">${{ running: ui('変換中'), success: ui('出力済み'), error: ui('失敗') }[item.status] || ui('待機中')}</span><button class="icon-button" data-batch-remove="${esc(item.id)}" aria-label="${esc(item.name)}をリストから削除" ${state.busy ? 'disabled' : ''}>×</button></li>`,
+            ui`<li class="batch-item ${item.status || ''}"><div><strong>${esc(item.name)}</strong><small>${esc(item.location === 'Dropped file' ? ui(item.location) : item.location)}</small>${item.message ? `<p>${esc(uiMessage(item.message))}</p>` : ''}</div><span class="batch-item-status">${{ running: ui('Converting'), success: ui('Exported'), error: ui('Failed') }[item.status] || ui('Ready')}</span><button class="icon-button" data-batch-remove="${esc(item.id)}" aria-label="Remove ${esc(item.name)} from list" ${state.busy ? 'disabled' : ''}>×</button></li>`,
         )
         .join('')
-    : ui('<li class="batch-empty">ファイルを追加してください。</li>');
+    : ui('<li class="batch-empty">Add files to get started.</li>');
   for (const id of [
     'batch-files',
     'batch-folder',
@@ -183,9 +183,7 @@ async function selectBatch(action) {
     } else {
       addBatchItems(result.items);
       uiBind($('batch-progress'), 'textContent', () =>
-        result.items.length
-          ? ui`${result.items.length}件のフローを追加しました。`
-          : ui('ファイルは追加されませんでした。'),
+        result.items.length ? ui`Added ${result.items.length} flows.` : ui('No files were added.'),
       );
     }
   } catch (error) {
@@ -199,11 +197,7 @@ async function addDroppedBatchFiles(files) {
   if (batchState.busy) return;
   const flows = Array.from(files).filter((file) => /\.(tflx|tfl)$/i.test(file.name));
   if (!flows.length) {
-    batchError(
-      ui(
-        '.tfl / .tflx ファイルをドロップしてください。フォルダーは「フォルダー指定」から選べます。',
-      ),
-    );
+    batchError(ui('Drop .tfl / .tflx files here. Use Choose folder to add a folder.'));
     return;
   }
   batchState.busy = true;
@@ -216,7 +210,7 @@ async function addDroppedBatchFiles(files) {
       uiBind(
         $('batch-progress'),
         'textContent',
-        () => ui`追加中 ${added + failed + 1} / ${flows.length}：${file.name}`,
+        () => ui`Adding ${added + failed + 1} / ${flows.length}: ${file.name}`,
       );
       try {
         const response = await uiFetch('/api/batch/upload', {
@@ -229,7 +223,7 @@ async function addDroppedBatchFiles(files) {
           body: file,
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || ui('追加できませんでした。'));
+        if (!response.ok) throw new Error(result.error || ui('Could not add file.'));
         addBatchItems(result.items);
         added++;
       } catch (error) {
@@ -244,7 +238,7 @@ async function addDroppedBatchFiles(files) {
       $('batch-progress'),
       'textContent',
       () =>
-        ui`${added}件を追加${failed ? ui`・${failed}件の追加に失敗` : ''}${files.length > flows.length ? ui('（対象外のファイルは除外）') : ''}。`,
+        ui`Added ${added} files${failed ? ui` · ${failed} could not be added` : ''}${files.length > flows.length ? ui(' (unsupported files excluded)') : ''}.`,
     );
   }
 }
@@ -257,7 +251,7 @@ async function removeBatchItems(ids) {
     await batchRequest('remove', { ids });
     batchState.items = batchState.items.filter((item) => !ids.includes(item.id));
     uiBind($('batch-progress'), 'textContent', () =>
-      ui('対象ファイルと出力先を確認して変換してください。'),
+      ui('Review the files and destination, then start conversion.'),
     );
   } catch (error) {
     batchError(error.message);
@@ -294,7 +288,7 @@ async function convertBatch() {
       uiBind(
         $('batch-progress'),
         'textContent',
-        () => ui`変換中 ${success + failed + 1} / ${state.items.length}：${item.name}`,
+        () => ui`Converting ${success + failed + 1} / ${state.items.length}: ${item.name}`,
       );
       try {
         const result = await batchRequest('convert', {
@@ -320,7 +314,7 @@ async function convertBatch() {
       $('batch-progress'),
       'textContent',
       () =>
-        ui`${waiting ? ui('停止') : ui('完了')}：出力 ${success}件・失敗 ${failed}件${waiting ? ui`・未処理 ${waiting}件` : ''}`,
+        ui`${waiting ? ui('Stopped') : ui('Completed')}: Exported ${success} · Failed ${failed}${waiting ? ui` · ${waiting} remaining` : ''}`,
     );
   }
 }

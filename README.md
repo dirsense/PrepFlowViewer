@@ -1,55 +1,55 @@
 # PrepFlow Viewer
 
-**日本語** | [English](README.en.md)
+**English** | [日本語](README.jp.md)
 
-https://github.com/user-attachments/assets/0ae0b2d0-d3a5-406f-92c0-6b8bcfe5f2f2
+https://github.com/user-attachments/assets/2a0d59ca-eb2d-4ffc-8e18-4a47c0b9e8a4
 
-**フローを瞬時に把握する。**
+**Understand your flow at a glance.**
 
-Tableau Prepのフローをデータの読み込みなしで即座に開き、中身を確認できるWindows用ツールです。見るだけなら、Tableau Prepのインストールは不要です。
+A Windows tool for opening and inspecting Tableau Prep flows instantly, without loading source data. You do not need Tableau Prep installed to view a flow.
 
-`.tfl` / `.tflx` の閲覧、計算式・出力先の編集、閲覧用HTMLの単一・一括出力に対応。フローの実行やTableau Serverへの公開もできます。表示言語は日本語・英語・フランス語・スペイン語・ドイツ語・ポルトガル語（ブラジル）の6言語です。
+Explore `.tfl` / `.tflx` files, edit formulas and output destinations, and export individual or multiple flows as self-contained HTML viewers. You can also run flows and publish them to Tableau Server. The interface supports Japanese, English, French, Spanish, German and Brazilian Portuguese.
 
-## ダウンロード・起動
+## Download and launch
 
-**Windows版の配布ZIPは準備中です。公開先：[GitHub Releases](https://github.com/dirsense/PrepFlowViewer/releases)**
+**[Download for Windows](https://github.com/dirsense/PrepFlowViewer/releases/latest/download/PrepFlowViewer-v1.0-Windows-x64.zip)** · [Release notes](https://github.com/dirsense/PrepFlowViewer/releases/latest)
 
-配布ZIPを入手したら、次の手順で起動します。
 
-1. ZIPを右クリックし、「すべて展開」します。
-2. 展開したフォルダーの `PrepFlowViewer_v1.0.exe` を開きます。`_internal` フォルダーはEXEと同じ場所に置いてください。
 
-Windows 10 / 11（64ビット）とMicrosoft Edge WebView2が必要です。Pythonのインストールは不要です。フローの実行には、有効なライセンスで動作するTableau Prep Builderが必要です。
+1. Right-click it and select **Extract All**.
+2. Open `PrepFlowViewer_v1.0.exe` in the extracted folder. Keep the `_internal` folder alongside the EXE.
 
-## 使い方
+Requires Windows 10 / 11 (64-bit) and Microsoft Edge WebView2. No Python installation is needed. Running flows requires Tableau Prep Builder with a valid license.
 
-**[図解付きの操作ガイドを開く](https://dirsense.github.io/PrepFlowViewer/manual.html)**
+## How to use
 
-フローの閲覧・編集・保存・HTML出力・実行・公開の手順はこちらをご覧ください。配布ZIPにも同じ内容の `操作ガイド.html` を同梱します。
+**[Open the illustrated English guide](https://dirsense.github.io/PrepFlowViewer/manual.html)**
 
-## 補足：開発者向け
+See the guide for viewing, editing, saving, exporting HTML, running and publishing flows. The distribution ZIP also includes the English guide as `manual.html`.
+
+## For developers
 
 <details>
-<summary>リポジトリの構成・開発・ビルド方法</summary>
+<summary>Repository layout, development and builds</summary>
 
-### 構成
+### Repository layout
 
-| ファイル・フォルダー | 役割 |
+| File or folder | Purpose |
 | --- | --- |
-| `prepflow.py` | フロー解析・保存・HTML生成・ローカルサーバー |
-| `desktop_launcher.py` | Windows版の起動・専用ウィンドウ |
-| `flow_runner.py` / `tableau_publish.py` | Prep CLI実行 / Server公開 |
-| `output_edit.py` / `formula_types.py` | 出力先編集 / 計算式の型推定 |
-| `web/` | 画面・スタイル・翻訳（読み込み順は `assets.json`） |
-| `tests/` / `samples/` | 自動テスト / サンプルフロー |
-| `manual.html` / `manual.en.html` / `docs/media/` | 日英の操作ガイド / READMEのデモ素材 |
-| `build_windows.py` | Windows版のビルド・配布ZIP作成 |
+| `prepflow.py` | Flow parsing, saving, HTML generation and local server |
+| `desktop_launcher.py` | Windows app entry point and desktop window |
+| `flow_runner.py` / `tableau_publish.py` | Prep CLI execution / Server publishing |
+| `output_edit.py` / `formula_types.py` | Output editing / formula type inference |
+| `web/` | Interface, styles and translations; script order is in `assets.json` |
+| `tests/` / `samples/` | Automated tests / sample flows |
+| `manual.html` / `manual.jp.html` / `docs/media/` | English and Japanese guides / README media |
+| `build_windows.py` | Windows build and distribution ZIP packaging |
 
-画面コードの改修については [開発ガイド](web/README.md) を参照してください。
+See the [UI development guide](web/README.md) for details on the frontend architecture.
 
-### ソースから起動・テスト
+### Run from source and test
 
-Python 3.10以降を使用します。Node.js 22以降は画面コードの整形・テスト用です。
+Use Python 3.10 or later. Node.js 22 or later is used for formatting and testing the interface code.
 
 ```powershell
 python -m pip install tableauserverclient==0.41
@@ -63,17 +63,17 @@ npm test
 npm run format:check
 ```
 
-### Windows版をビルド
+### Build the Windows app
 
-Windows上の64ビット版Pythonを使用します（配布版はPython 3.13で確認）。
+Use 64-bit Python on Windows. The distribution build has been verified with Python 3.13.
 
 ```powershell
 python -m pip install --target .build-tools pyinstaller==6.22.3 pywebview==6.2.1 tableauserverclient==0.41
 python build_windows.py
 ```
 
-`dist/PrepFlowViewer/` にアプリと操作ガイド、`dist/PrepFlowViewer-v1.0-Windows-x64.zip` に配布ZIPを生成します。バージョンは `build_windows.py` の `VERSION` で管理します。
+The app and guides are generated in `dist/PrepFlowViewer/`, with the distribution ZIP at `dist/PrepFlowViewer-v1.0-Windows-x64.zip`. The version is defined by `VERSION` in `build_windows.py`.
 
-日英の操作ガイドは `manual.html` / `manual.en.html` を原本とし、mainへの更新時にGitHub Pagesへ自動反映します。
+The English and Japanese guides are maintained in `manual.html` and `manual.jp.html`. Changes on main are automatically published to GitHub Pages.
 
 </details>

@@ -22,7 +22,7 @@ async function runRequest(action, payload = {}) {
     body: JSON.stringify(payload),
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || ui('実行処理に失敗しました。'));
+  if (!response.ok) throw new Error(data.error || ui('Execution failed.'));
   return data;
 }
 function runError(message = '') {
@@ -46,7 +46,7 @@ function updateRunClock() {
     : runState.startingAt
       ? Date.now() - runState.startingAt
       : 0;
-  uiBind($('run-time-label'), 'textContent', () => (active ? ui('経過時間') : ui('所要時間')));
+  uiBind($('run-time-label'), 'textContent', () => (active ? ui('Elapsed time') : ui('Duration')));
   $('run-time').textContent = runDuration(elapsed);
   if (active && $('run-progress-dialog').open) runState.clock = setTimeout(updateRunClock, 250);
 }
@@ -55,18 +55,18 @@ function renderRunProgress() {
   const cancelling = runState.cancelBusy || runState.job?.state === 'cancelling';
   uiBind($('run-status'), 'textContent', () =>
     runState.pendingId
-      ? ui('実行状態を確認中…')
+      ? ui('Checking execution status…')
       : cancelling
-        ? ui('キャンセル中…')
+        ? ui('Cancelling…')
         : runState.running
-          ? ui('実行中…')
+          ? ui('Running…')
           : runState.busy
-            ? ui('実行を準備中…')
+            ? ui('Preparing execution…')
             : {
-                success: ui('実行完了'),
-                error: ui('実行失敗'),
-                cancelled: ui('キャンセルしました'),
-              }[runState.job?.state] || ui('待機中'),
+                success: ui('Execution completed'),
+                error: ui('Execution failed'),
+                cancelled: ui('Cancelled'),
+              }[runState.job?.state] || ui('Ready'),
   );
   $('run-progress-dialog').dataset.state = active ? 'running' : runState.job?.state || 'idle';
   $('run-spinner').hidden = !active;
@@ -74,14 +74,14 @@ function renderRunProgress() {
   $('run-progress-done').hidden = active;
   $('run-cancel').hidden = !active;
   $('run-cancel').disabled = !runState.job?.running || cancelling || !!runState.pendingId;
-  uiBind($('run-cancel'), 'textContent', () => (cancelling ? ui('停止中…') : ui('キャンセル')));
+  uiBind($('run-cancel'), 'textContent', () => (cancelling ? ui('Stopping…') : ui('Cancel')));
   $('run-cancel-note').hidden = !active && runState.job?.state !== 'cancelled';
   $('run-progress-name').textContent = runState.job?.name || DATA.name;
   uiBind(
     $('run-progress-targets'),
     'textContent',
     () =>
-      ui('実行対象：') +
+      ui('Outputs to run: ') +
       (runState.job?.outputs || runState.targets).map((item) => item.name).join('、'),
   );
   updateRunClock();
@@ -97,37 +97,33 @@ function renderRun() {
     WriteToHyper: 'Hyper',
     WriteToExcel: 'Excel',
     WriteToJson: 'JSON',
-    WriteToDatabase: ui('データベース'),
-    PublishExtract: ui('データソース'),
+    WriteToDatabase: ui('Database'),
+    PublishExtract: ui('Data source'),
   };
   const selected = new Set((runState.job?.outputs || []).map((item) => item.id));
   $('run-outputs').innerHTML = runState.outputs.length
     ? runState.outputs
         .map((item) => {
           // Older running servers / completed jobs may still include the internal tdsOutput setting.
-          const details = item.details.filter(([label]) => label !== 'データソース定義');
+          const details = item.details.filter(([label]) => label !== 'Data source definition');
           const fields = item.path
-            ? [[ui('保存先'), item.folder], [ui('ファイル名'), item.filename], ...details]
+            ? [[ui('Destination'), item.folder], [ui('File name'), item.filename], ...details]
             : details;
           const status = selected.has(item.id)
             ? {
-                running: ui('実行中'),
-                cancelling: ui('停止中'),
-                cancelled: ui('キャンセル'),
-                success: ui('完了'),
-                error: ui('失敗'),
+                running: ui('Running'),
+                cancelling: ui('Stopping'),
+                cancelled: ui('Cancel'),
+                success: ui('Completed'),
+                error: ui('Failed'),
               }[runState.job?.state] || ''
             : '';
-          return ui`<li class="run-output"><div><strong>${esc(item.name)}</strong><span class="run-format">${esc(formats[item.type] || item.type)}</span><dl>${fields.length ? fields.map(([name, value]) => `<div><dt>${esc(ui(name))}</dt><dd>${esc(value)}</dd></div>`).join('') : ui('<div><dd>保存先の詳細はステップの出力設定を確認してください。</dd></div>')}</dl></div><div class="run-output-action"><span>${esc(status)}</span><button class="button" data-run-output="${esc(item.id)}" ${blocked || !runState.cli ? 'disabled' : ''}>実行</button></div></li>`;
+          return ui`<li class="run-output"><div><strong>${esc(item.name)}</strong><span class="run-format">${esc(formats[item.type] || item.type)}</span><dl>${fields.length ? fields.map(([name, value]) => `<div><dt>${esc(ui(name))}</dt><dd>${esc(value)}</dd></div>`).join('') : ui("<div><dd>See the step's output settings for destination details.</dd></div>")}</dl></div><div class="run-output-action"><span>${esc(status)}</span><button class="button" data-run-output="${esc(item.id)}" ${blocked || !runState.cli ? 'disabled' : ''}>Run</button></div></li>`;
         })
         .join('')
-    : ui('<li class="batch-empty">出力ステップがありません。</li>');
+    : ui('<li class="batch-empty">No output steps.</li>');
   $('run-all').disabled = blocked || !runState.cli || !runState.outputs.length;
-  uiBind(
-    $('run-output-count'),
-    'textContent',
-    () => ui`出力ステップ（${runState.outputs.length}件）`,
-  );
+  uiBind($('run-output-count'), 'textContent', () => ui`Output steps (${runState.outputs.length})`);
   $('run-last-result').hidden = !runState.job || runState.running;
   for (const id of ['run-pick-cli', 'run-pick-credentials', 'run-clear-credentials'])
     $(id).disabled = blocked;
@@ -184,7 +180,7 @@ async function pollRun() {
             logs: [],
             elapsedMs: Date.now() - runState.startingAt,
           });
-          runError(retry.error || ui('実行を開始できませんでした。'));
+          runError(retry.error || ui('Could not start execution.'));
           return;
         }
         data.job = retry.job;
@@ -194,14 +190,14 @@ async function pollRun() {
     runError();
     if (runState.running) scheduleRunPoll();
   } catch (error) {
-    runError(ui('実行状況を確認できません。接続の回復を待っています。'));
+    runError(ui('Cannot check execution status. Waiting for the connection to recover.'));
     scheduleRunPoll();
   }
 }
 async function openRun() {
   if (!CAN_EDIT || flowEditBusy || loadingFlow) return;
   if ([...formulaDrafts.values()].some((d) => d.dirty)) {
-    toast(ui('編集中の計算式を「変更を確定」してから開いてください。'));
+    toast(ui('Confirm your formula edits before opening this dialog.'));
     return;
   }
   runState.busy = true;
@@ -307,7 +303,7 @@ async function startRun(ids) {
         logs: [],
         elapsedMs: Date.now() - runState.startingAt,
       });
-      runError(data.error || ui('実行を開始できませんでした。'));
+      runError(data.error || ui('Could not start execution.'));
       return;
     }
     applyRunJob(data.job);
@@ -316,7 +312,7 @@ async function startRun(ids) {
     // An interrupted response is not proof the process failed to start.
     runState.pendingId = requestId;
     runState.pendingPayload = payload;
-    runError(ui('通信が途切れたため、実行状態を確認しています。'));
+    runError(ui('Connection interrupted. Checking execution status.'));
     scheduleRunPoll();
   } finally {
     runState.busy = false;

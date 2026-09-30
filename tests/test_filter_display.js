@@ -17,18 +17,18 @@ assert.deepEqual(
     },
     'RangeFilter',
   ),
-  [{ field: 'F2', summary: '保持：null' }],
+  [{ field: 'F2', summary: 'Keep：null' }],
 );
 assert.deepEqual(filterDisplayRows({ exclude: true, values: { F3: [null] } }, 'ValueFilter'), [
-  { field: 'F3', summary: '除外：null' },
+  { field: 'F3', summary: 'Exclude：null' },
 ]);
 assert.deepEqual(
   filterDisplayRows({ exclude: true, values: { Word: ['"null"', '""', '"abc"'] } }, 'ValueFilter'),
-  [{ field: 'Word', summary: '除外："null"、""、"abc"' }],
+  [{ field: 'Word', summary: 'Exclude："null"、""、"abc"' }],
 );
 assert.equal(
   filterRangeText({ startValue: '17.0', endValue: '18.0', includeStart: true, includeEnd: false }),
-  '≥ 17.0 かつ < 18.0',
+  '≥ 17.0 and < 18.0',
 );
 assert.equal(
   filterRangeText({ startValue: 0, endValue: 0, includeStart: true, includeEnd: true }),
@@ -64,16 +64,16 @@ vm.runInContext(
 const action = {
   id: 'filter',
   type: 'FilterOperation',
-  label: 'フィルター',
+  label: 'Filter',
   raw: {},
-  expressions: [{ field: '条件式', expression: '[Year] > 2020', references: ['Year'] }],
+  expressions: [{ field: 'Condition', expression: '[Year] > 2020', references: ['Year'] }],
 };
 assert.equal(context.changeCategory(action), 'filters');
 const card = context.actionHtml(action, 0);
 assert.match(card, /filter\.svg/);
-assert.match(card, /<h3>フィルター<\/h3>/);
+assert.match(card, /<h3>Filter<\/h3>/);
 assert.match(card, /<span class="chip">Year<\/span>/);
 assert.match(card, /\[Year\] > 2020/);
 assert.equal(origin.actionId, 'filter');
-assert.equal(origin.field, '条件式');
+assert.equal(origin.field, 'Condition');
 console.log('Formula filters: filter category, icon, fields, expression and editor target passed.');

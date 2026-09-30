@@ -272,7 +272,7 @@ console.log(
 
 const { placeGraphComment } = require('../web/comment-layout.js');
 const zoomText =
-  '◆グループ化　車種名、年代、年月、データ元(STATUS)、性別、GRADE、販社コード、塗色コード、塗色名称 ◆カウント MITSUMORI_NO';
+  '◆Group by　車種名、年代、年月、データ元(STATUS)、性別、GRADE、販社コード、塗色コード、塗色名称 ◆カウント MITSUMORI_NO';
 let reproducedDisappearance = false;
 for (let tick = 75; tick <= 300; tick++) {
   const zoom = tick / 100,

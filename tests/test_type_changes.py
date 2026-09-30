@@ -4,12 +4,14 @@ import prepflow
 
 
 class TypeChangeTests(unittest.TestCase):
-    def test_split_type_change_keeps_name_at_time_of_action(self):
-        model = prepflow.analyze(prepflow.ROOT / 'samples' / 'PreppinData_2024_Week_31.tflx')
-        node = next(n for n in model['nodes'] if n['name'] == 'Split x2')
+    def test_type_change_keeps_name_at_time_of_action(self):
+        from flow_fixtures import flow_stream
+        model = prepflow.analyze(flow_stream({'Value': 'string'}, [
+            {'nodeType': '.v1.ChangeColumnType', 'fields': {'Value': {'type': 'integer'}}},
+            {'nodeType': '.v1.RenameColumn', 'columnName': 'Value', 'rename': 'Renamed'}]))
+        node = next(n for n in model['nodes'] if n['id'] == 'transform')
         action = next(a for a in node['actions'] if a['type'] == 'ChangeColumnType')
-        self.assertEqual(action['typeChanges'], [
-            {'field': 'Event Time/Distance - Split 2', 'before': 'string', 'after': 'integer'}])
+        self.assertEqual(action['typeChanges'], [{'field': 'Value', 'before': 'string', 'after': 'integer'}])
 
     def test_consecutive_changes_use_previous_action_type(self):
         fields = {'value': prepflow.make_field('value', 'string', 'input')}

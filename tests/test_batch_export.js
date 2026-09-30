@@ -27,7 +27,7 @@ async function main() {
   context.fetch = async (url, options) => {
     const data = JSON.parse(options.body);
     calls.push(data.id);
-    if (data.id === 'bad') return { ok: false, json: async () => ({ error: '壊れたフローです' }) };
+    if (data.id === 'bad') return { ok: false, json: async () => ({ error: 'Invalid flow' }) };
     return { ok: true, json: async () => ({ path: 'saved/' + data.id + '.html' }) };
   };
   vm.runInContext(
@@ -36,10 +36,10 @@ async function main() {
   );
   await context.convertBatch();
   assert.deepEqual(calls, ['a', 'bad', 'b'], 'failure must not stop subsequent conversions');
-  assert.equal(element('batch-progress').textContent, '完了：出力 2件・失敗 1件');
+  assert.equal(element('batch-progress').textContent, 'Completed: Exported 2 · Failed 1');
   assert.equal(context.batchIsBusy(), false);
   assert.equal(element('close-batch').disabled, false);
-  assert.match(element('batch-list').innerHTML, /壊れたフローです/);
+  assert.match(element('batch-list').innerHTML, /Invalid flow/);
   calls = [];
   context.fetch = async (url, options) => {
     calls.push(JSON.parse(options.body).id);
@@ -48,7 +48,10 @@ async function main() {
   };
   await context.convertBatch();
   assert.deepEqual(calls, ['a']);
-  assert.equal(element('batch-progress').textContent, '停止：出力 1件・失敗 0件・未処理 2件');
+  assert.equal(
+    element('batch-progress').textContent,
+    'Stopped: Exported 1 · Failed 0 · 2 remaining',
+  );
   const before = vm.runInContext('batchState.items.length', context);
   context.fetch = async () => ({ ok: false, json: async () => ({ error: 'connection failed' }) });
   await context.removeBatchItems(['a']);
