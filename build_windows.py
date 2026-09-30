@@ -20,7 +20,7 @@ def public_archive(package, dist, version):
         raise ValueError('バージョン番号が不正です。')
     package, dist = Path(package).resolve(), Path(dist).resolve()
     required = [f'PrepFlowViewer_v{version}.exe', '_internal',
-                '操作ガイド.html', 'はじめに.txt', 'publish.example.ini']
+                '操作ガイド.html', 'manual.en.html', 'はじめに.txt', 'publish.example.ini']
     for name in required:
         if not (package / name).exists():
             raise RuntimeError(f'配布対象のファイルがありません: {name}')
@@ -76,6 +76,9 @@ def main():
         os.utime(manual, ns=(manual_stat.st_atime_ns, manual_stat.st_mtime_ns))
     else:
         shutil.copy2(ROOT / 'manual.html', manual)
+    english_manual = (ROOT / 'manual.en.html').read_text(encoding='utf-8')
+    (package / 'manual.en.html').write_text(
+        english_manual.replace('href="manual.html"', 'href="操作ガイド.html"'), encoding='utf-8')
     shutil.copy2(ROOT / 'publish.example.ini', package / 'publish.example.ini')
     # Keep the bundled interpreter's license alongside the distribution.
     license_path = Path(sys.base_prefix) / 'LICENSE.txt'

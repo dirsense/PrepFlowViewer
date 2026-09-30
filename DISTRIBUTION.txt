@@ -2,6 +2,7 @@ PrepFlow Viewer — Windows版 v1.0
 仕様確認：2026年9月29日
 
 基本操作は、同梱の「操作ガイド.html」をブラウザーで開いてください。
+English guide: Open manual.en.html in your browser.
 「開く・見る・編集して保存・共有」の手順を短くまとめています。インターネット接続なしで読めます。
 
 閲覧・編集にはPython・Tableau Prep・Codexのインストールは不要です。

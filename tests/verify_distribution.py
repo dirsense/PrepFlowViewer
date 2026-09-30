@@ -38,6 +38,7 @@ def verify():
         assert (exe.parent / '_internal/python313.dll').is_file()
         assert not (exe.parent / 'samples').exists()
         assert (exe.parent / '操作ガイド.html').is_file()
+        assert (exe.parent / 'manual.en.html').is_file()
         assert (exe.parent / 'はじめに.txt').is_file()
         work = target / 'unrelated-working-folder'
         work.mkdir()

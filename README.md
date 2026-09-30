@@ -1,5 +1,7 @@
 # PrepFlow Viewer
 
+**日本語** | [English](README.en.md)
+
 [![PrepFlow Viewerの主要操作デモ](docs/media/readme-demo.gif)](docs/media/readme-demo.gif)
 
 **フローを瞬時に把握する。**
@@ -40,7 +42,7 @@ Windows 10 / 11（64ビット）とMicrosoft Edge WebView2が必要です。Pyth
 | `output_edit.py` / `formula_types.py` | 出力先編集 / 計算式の型推定 |
 | `web/` | 画面・スタイル・翻訳（読み込み順は `assets.json`） |
 | `tests/` / `samples/` | 自動テスト / サンプルフロー |
-| `manual.html` / `docs/media/` | 操作ガイドの原本 / READMEのデモ素材 |
+| `manual.html` / `manual.en.html` / `docs/media/` | 日英の操作ガイド / READMEのデモ素材 |
 | `build_windows.py` | Windows版のビルド・配布ZIP作成 |
 
 画面コードの改修については [開発ガイド](web/README.md) を参照してください。
@@ -72,6 +74,6 @@ python build_windows.py
 
 `dist/PrepFlowViewer/` にアプリと操作ガイド、`dist/PrepFlowViewer-v1.0-Windows-x64.zip` に配布ZIPを生成します。バージョンは `build_windows.py` の `VERSION` で管理します。
 
-操作ガイドの公開版は `manual.html` を原本とし、mainへの更新時にGitHub Pagesへ自動反映します。
+日英の操作ガイドは `manual.html` / `manual.en.html` を原本とし、mainへの更新時にGitHub Pagesへ自動反映します。
 
 </details>
