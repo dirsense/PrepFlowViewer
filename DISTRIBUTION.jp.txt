@@ -5,7 +5,7 @@ PrepFlow Viewer — Windows版 v1.0
 English guide: Open manual.html in your browser.
 「開く・見る・編集して保存・共有」の手順を短くまとめています。インターネット接続なしで読めます。
 
-閲覧・編集にはPython・Tableau Prep・Codexのインストールは不要です。
+閲覧・編集にはPython・Tableau Prepのインストールは不要です。
 フローの実行には、別途Tableau Prep Builderと利用可能なライセンスが必要です。
 Windows 10/11（64ビット）で利用できます。画面表示にはMicrosoft Edge WebView2を使用します。
 通常の利用にインターネット接続は不要です。
