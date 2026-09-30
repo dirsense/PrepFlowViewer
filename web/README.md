@@ -64,7 +64,9 @@ Prettier の設定は `.prettierrc.json`、字下げと改行は `.editorconfig`
 
 ## 操作説明を更新する場所
 
-機能や画面を変更したら、ルートの `README.md`、`manual.html`、`DISTRIBUTION.txt` を同時に確認します。`manual.html` は一般ユーザー向けに、基本操作と必要な注意点を短くまとめます。細かな制約や内部処理の説明はREADMEに記載し、ガイドへ重複して追加しないでください。目次・画面図・折りたたみの補足・困ったときの案内も、実画面の手順と照合します。
+機能や画面を変更したら、ルートの `README.md`、`manual.html`、`DISTRIBUTION.txt` を同時に確認します。READMEは概要・ダウンロード・起動方法と開発者向けの補足に絞り、詳しい操作は `manual.html` へ集約します。内部処理の説明はこの開発ガイドや該当コードに記載します。操作ガイドの目次・画面図・折りたたみの補足・困ったときの案内は、実画面の手順と照合します。
+
+オンライン版の操作ガイドは `.github/workflows/manual-pages.yml` が `manual.html` だけを公開用フォルダーへコピーし、GitHub Pagesへ配信します。mainの原本を更新すると同じURLへ自動反映します。READMEからはHTMLのソース表示ではなく、この公開URLへリンクします。
 
 配布時は `manual.html` が `操作ガイド.html`、`DISTRIBUTION.txt` が `はじめに.txt` としてビルド先へコピーされます。文書の原本を直しても、すでに作ったZIPやEXEは自動更新されません。公開するバージョンをビルドし直して、同じ内容の説明書と一緒に配布します。
 
