@@ -1,9 +1,10 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
-import argparse, json, math
+import argparse, json, math, subprocess
 ROOT=Path(__file__).resolve().parents[1]
-parser=argparse.ArgumentParser(description='Build a README GIF from actual application captures.')
+parser=argparse.ArgumentParser(description='Build README media from actual application captures.')
 parser.add_argument('--language', choices=('ja', 'en'), default='ja')
+parser.add_argument('--format', choices=('gif', 'mp4'), default='gif')
 args=parser.parse_args()
 english=args.language=='en'
 suffix='-en' if english else ''
@@ -70,16 +71,35 @@ for pos,idx in enumerate(order):
  for pulse in (1,2,1):frames.append(compose(idx,shot,1,pulse,progress));durations.append(100)
  still=compose(idx,shot,1,0,progress);frames.append(still);durations.append(max(600,duration-580));review.append((idx,still))
 frames.append(poster);durations.append(1500)
-# Fixed palette avoids color flicker, and GIF delta frames keep repository size modest.
-thumb=Image.new('RGB',(320*6,219*5),'white')
-for i,im in enumerate(frames[::8][:30]):thumb.paste(im.resize((320,219)),((i%6)*320,(i//6)*219))
-palette=thumb.quantize(colors=192,method=Image.Quantize.MEDIANCUT)
-quantized=[im.quantize(palette=palette,dither=Image.Dither.NONE) for im in frames]
-quantized[0].save(OUT/f'readme-demo{suffix}.gif',save_all=True,append_images=quantized[1:],duration=durations,loop=0,optimize=True,disposal=1)
+destination=OUT/f'readme-demo{suffix}.{args.format}'
+if args.format=='mp4':
+ import imageio_ffmpeg
+ frame_dir=WORK/'video_frames'
+ frame_dir.mkdir(exist_ok=True)
+ manifest=['ffconcat version 1.0']
+ for index,(frame,duration) in enumerate(zip(frames,durations)):
+  name=f'{index:04d}.png'
+  frame.save(frame_dir/name)
+  manifest.extend([f"file '{name}'",f'duration {duration/1000:.3f}'])
+ manifest.append(f"file '{len(frames)-1:04d}.png'")
+ (frame_dir/'frames.txt').write_text('\n'.join(manifest)+'\n',encoding='utf-8')
+ subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(),'-hide_banner','-loglevel','error','-y',
+                 '-f','concat','-safe','0','-i','frames.txt','-t',str(sum(durations)/1000),
+                 '-vf','tpad=stop_mode=clone:stop_duration=2','-r','30',
+                 '-c:v','libx264','-preset','medium','-crf','20',
+                 '-pix_fmt','yuv420p','-movflags','+faststart',str(destination)],
+                cwd=frame_dir,check=True)
+else:
+ # Fixed palette avoids color flicker; GIF delta frames reduce file size.
+ thumb=Image.new('RGB',(320*6,219*5),'white')
+ for i,im in enumerate(frames[::8][:30]):thumb.paste(im.resize((320,219)),((i%6)*320,(i//6)*219))
+ palette=thumb.quantize(colors=192,method=Image.Quantize.MEDIANCUT)
+ quantized=[im.quantize(palette=palette,dither=Image.Dither.NONE) for im in frames]
+ quantized[0].save(destination,save_all=True,append_images=quantized[1:],duration=durations,loop=0,optimize=True,disposal=1)
 for group in range(math.ceil(len(review)/6)):
  sheet=Image.new('RGB',(1280,3*455),'#e4ecef')
  for j,(idx,im) in enumerate(review[group*6:group*6+6]):
   sheet.paste(im.resize((640,437)),((j%2)*640,(j//2)*455))
  sheet.save(WORK/f'final-review-{group}.jpg')
-info={'durationSeconds':sum(durations)/1000,'sizeBytes':(OUT/f'readme-demo{suffix}.gif').stat().st_size,'width':W,'height':H,'sourceCaptures':len(shots),'animatedFrames':len(frames)}
-(WORK/'result.json').write_text(json.dumps(info,indent=2),encoding='utf-8');print(json.dumps(info))
+info={'format':args.format,'durationSeconds':sum(durations)/1000,'sizeBytes':destination.stat().st_size,'width':W,'height':H,'sourceCaptures':len(shots),'animatedFrames':len(frames)}
+(WORK/f'result-{args.format}.json').write_text(json.dumps(info,indent=2),encoding='utf-8');print(json.dumps(info))

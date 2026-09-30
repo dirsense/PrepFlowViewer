@@ -2,7 +2,7 @@
 
 **日本語** | [English](README.en.md)
 
-[![PrepFlow Viewerの主要操作デモ](docs/media/readme-demo.gif)](docs/media/readme-demo.gif)
+https://github.com/user-attachments/assets/0ae0b2d0-d3a5-406f-92c0-6b8bcfe5f2f2
 
 **フローを瞬時に把握する。**
 

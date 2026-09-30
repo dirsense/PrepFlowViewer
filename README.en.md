@@ -2,7 +2,7 @@
 
 [日本語](README.md) | **English**
 
-[![PrepFlow Viewer walkthrough in English](docs/media/readme-demo-en.gif)](docs/media/readme-demo-en.gif)
+https://github.com/user-attachments/assets/0aabbab5-033b-4187-821f-f760fd447941
 
 **Understand your flow at a glance.**
 
