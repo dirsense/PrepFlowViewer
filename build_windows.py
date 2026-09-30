@@ -20,7 +20,7 @@ def public_archive(package, dist, version):
         raise ValueError('Invalid version number.')
     package, dist = Path(package).resolve(), Path(dist).resolve()
     required = [f'PrepFlowViewer_v{version}.exe', '_internal',
-                'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt', 'publish.example.ini']
+                'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt', 'publish.example.ini', 'LICENSE']
     for name in required:
         if not (package / name).exists():
             raise RuntimeError(f'Missing distribution file: {name}')
@@ -71,6 +71,7 @@ def main():
     ], cwd=ROOT, env=env, check=True)
     (package / 'PrepFlowViewer.exe').rename(package / EXE_NAME)
     shutil.copy2(ROOT / 'DISTRIBUTION.txt', package / 'DISTRIBUTION.txt')
+    shutil.copy2(ROOT / 'LICENSE', package / 'LICENSE')
     if args.keep_manual:
         manual.write_bytes(manual_bytes)
         os.utime(manual, ns=(manual_stat.st_atime_ns, manual_stat.st_mtime_ns))

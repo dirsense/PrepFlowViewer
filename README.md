@@ -77,3 +77,7 @@ The app and guides are generated in `dist/PrepFlowViewer/`, with the distributio
 The English and Japanese guides are maintained in `manual.html` and `manual.jp.html`. Changes on main are automatically published to GitHub Pages.
 
 </details>
+
+## License
+
+[MIT License](LICENSE) · Copyright (c) 2026 dirsense. Third-party dependencies and the Tableau Superstore sample retain their own licenses and rights; see [sample attribution](samples/README.md).

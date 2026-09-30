@@ -77,3 +77,7 @@ python build_windows.py
 日英の操作ガイドは `manual.jp.html` / `manual.html` を原本とし、mainへの更新時にGitHub Pagesへ自動反映します。
 
 </details>
+
+## ライセンス
+
+[MITライセンス](LICENSE) · Copyright (c) 2026 dirsense。外部ライブラリとTableauのSuperstoreサンプルには、それぞれのライセンス・権利が適用されます。[サンプルの出典](samples/README.md)

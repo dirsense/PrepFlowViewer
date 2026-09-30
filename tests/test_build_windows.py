@@ -16,7 +16,7 @@ class PublicArchiveTests(unittest.TestCase):
         self.package.mkdir()
         for name in ('PrepFlowViewer_v1.0.exe', '_internal/python313.dll',
                      '_internal/web/assets.json', 'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt',
-                     'publish.example.ini', 'Python-LICENSE.txt', 'licenses/dependency/LICENSE'):
+                     'publish.example.ini', 'LICENSE', 'Python-LICENSE.txt', 'licenses/dependency/LICENSE'):
             file = self.package / name
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_text(name, encoding='utf-8')
@@ -30,7 +30,7 @@ class PublicArchiveTests(unittest.TestCase):
             names = archive.namelist()
             for name in ('PrepFlowViewer_v1.0.exe', '_internal/python313.dll',
                          '_internal/web/assets.json', 'manual.html', 'manual.jp.html', 'DISTRIBUTION.txt', 'DISTRIBUTION.jp.txt',
-                         'publish.example.ini', 'Python-LICENSE.txt', 'licenses/dependency/LICENSE'):
+                         'publish.example.ini', 'LICENSE', 'Python-LICENSE.txt', 'licenses/dependency/LICENSE'):
                 self.assertIn('PrepFlowViewer/' + name, names)
             self.assertFalse(any(info.flag_bits & 1 for info in archive.infolist()))
             self.assertFalse(any('local-only' in archive.read(name).decode('utf-8') for name in names))
