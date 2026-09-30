@@ -19,7 +19,7 @@
     <div class="flow-view-tools">
       <button class="header-button" id="fit-button" title="フロー全体を表示" aria-label="フロー全体を表示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a2 2 0 0 0-2 2v3m11-5h3a2 2 0 0 1 2 2v3M4 15v3a2 2 0 0 0 2 2h3m11-5v3a2 2 0 0 1-2 2h-3"/></svg></button>
       <button class="header-button" id="publish-button" title="Tableau Serverへパブリッシュ" aria-label="Tableau Serverへパブリッシュ" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></svg></button>
-      <button class="header-button" id="download-button" title="ダウンロード・保存" aria-label="ダウンロード・保存" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg></button>
+      <button class="header-button" id="download-button" title="出力・保存" aria-label="出力・保存" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v13m-5-5 5 5 5-5M4 15v6h16v-6"/></svg></button>
       <button class="header-button" id="run-button" title="フローを実行" aria-label="フローを実行" aria-haspopup="dialog" disabled hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 15 9-15 9Z"/></svg></button>
       <div id="flow-edit-tools" hidden>
         <button class="header-button" id="undo-flow" title="元に戻す" aria-label="元に戻す" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 3-5 5 5 5M3 8h11.5a6.5 6.5 0 0 1 0 13H12"/></svg></button>
@@ -72,31 +72,31 @@
 <div id="busy-overlay" hidden><div class="spinner"></div><h2>フローの定義を読み込んでいます</h2><p>入力データの読み込みや接続は行いません</p></div>
 <div id="toast" role="status" hidden></div>
 <dialog id="download-dialog" aria-labelledby="download-title">
-  <div class="dialog-heading"><h2 id="download-title">ダウンロード・保存</h2><button class="icon-button" id="close-download" aria-label="保存メニューを閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="download-title">出力・保存</h2><button class="icon-button" id="close-download" aria-label="出力・保存メニューを閉じる">×</button></div>
   <div class="download-options">
-    <button class="button" id="export-button">HTMLを保存</button>
+    <button class="button" id="export-button">HTMLを出力</button>
     <button class="button" id="save-flow" disabled>フローを保存</button>
   </div>
   <p class="download-note">フローの保存は、編集内容を確定すると使えます。</p>
 </dialog>
 <dialog id="batch-dialog" aria-labelledby="batch-title">
-  <div class="dialog-heading"><h2 id="batch-title">HTMLを保存</h2><button class="icon-button" id="close-batch" aria-label="HTML保存を閉じる">×</button></div>
+  <div class="dialog-heading"><h2 id="batch-title">HTMLを出力</h2><button class="icon-button" id="close-batch" aria-label="HTML出力を閉じる">×</button></div>
   <div class="html-export-options">
     <label id="html-language-label">対応言語</label>
     <details id="html-language-picker"><summary aria-labelledby="html-language-label html-language-summary"><span id="html-language-summary"></span><span aria-hidden="true">▾</span></summary><div id="html-language-options" role="group" aria-labelledby="html-language-label"></div></details>
     <label class="html-switcher-label"><input type="checkbox" id="html-language-switcher"> 言語切替アイコン有</label>
     <p id="html-language-note"></p>
   </div>
-  <div class="html-export-tabs" role="tablist" aria-label="HTMLの保存方法">
-    <button id="html-single-tab" role="tab" aria-selected="true" aria-controls="html-single-panel">単一保存</button>
-    <button id="html-batch-tab" role="tab" aria-selected="false" aria-controls="html-batch-panel" tabindex="-1">一括保存</button>
+  <div class="html-export-tabs" role="tablist" aria-label="HTMLの出力方法">
+    <button id="html-single-tab" role="tab" aria-selected="true" aria-controls="html-single-panel">単一出力</button>
+    <button id="html-batch-tab" role="tab" aria-selected="false" aria-controls="html-batch-panel" tabindex="-1">一括出力</button>
   </div>
   <section id="html-single-panel" role="tabpanel" aria-labelledby="html-single-tab">
     <label class="batch-output-label" for="html-source">対象フロー</label>
     <div class="batch-output"><input id="html-source" placeholder="フローを選択してください" readonly><button class="button" id="html-source-select">フロー選択</button></div>
-    <p class="batch-note">現在のフローは確定済みの編集を含めて保存します。別のフローを選ぶと、そのファイルの保存済み内容を使います。</p>
+    <p class="batch-note">現在のフローは確定済みの編集を含めて出力します。別のフローを選ぶと、そのファイルの保存済み内容を使います。</p>
     <p id="html-single-error" role="alert" hidden></p>
-    <div class="batch-footer"><span id="html-single-status" role="status" aria-live="polite"></span><button class="button primary" id="html-single-save">保存</button></div>
+    <div class="batch-footer"><span id="html-single-status" role="status" aria-live="polite"></span><button class="button primary" id="html-single-save">HTMLを出力</button></div>
   </section>
   <section id="html-batch-panel" role="tabpanel" aria-labelledby="html-batch-tab" hidden>
   <p class="batch-intro">複数のフローを、単独で開ける閲覧用HTMLに変換します。</p>
@@ -107,11 +107,11 @@
   <div class="batch-input-actions"><button class="button" id="batch-files">ファイル指定</button><button class="button" id="batch-folder">フォルダー指定</button><label><input type="checkbox" id="batch-recursive" checked> サブフォルダーも含める</label></div>
   <div class="batch-list-heading"><strong id="batch-count">対象ファイル 0件</strong><button class="batch-clear" id="batch-clear" disabled>リストをクリア</button></div>
   <ul id="batch-list" aria-label="変換するフロー"><li class="batch-empty">ファイルを追加してください。</li></ul>
-  <label class="batch-output-label" for="batch-output">保存先フォルダー</label>
-  <div class="batch-output"><input id="batch-output" placeholder="保存先を選択してください" readonly><button class="button" id="batch-destination">フォルダー指定</button></div>
+  <label class="batch-output-label" for="batch-output">出力先フォルダー</label>
+  <div class="batch-output"><input id="batch-output" placeholder="出力先を選択してください" readonly><button class="button" id="batch-destination">フォルダー指定</button></div>
   <p class="batch-note">同名のHTMLは上書きします。変換には選択したファイルの保存済み内容を使います。</p>
   <p id="batch-error" role="alert" hidden></p>
-  <div class="batch-footer"><span id="batch-progress" role="status" aria-live="polite">対象ファイルと保存先を選んでください。</span><button class="button" id="batch-stop" hidden>このファイルまでで停止</button><button class="button primary" id="batch-start" disabled>HTMLに変換して保存</button></div>
+  <div class="batch-footer"><span id="batch-progress" role="status" aria-live="polite">対象ファイルと出力先を選んでください。</span><button class="button" id="batch-stop" hidden>このファイルまでで停止</button><button class="button primary" id="batch-start" disabled>HTML一括出力</button></div>
   </section>
 </dialog>
 <dialog id="file-error-dialog"><div class="dialog-heading"><h2>フローを開けませんでした</h2><button class="icon-button" id="close-file-error" aria-label="エラーを閉じる">×</button></div><p id="file-error-message"></p><button class="button primary" id="file-error-ok">OK</button></dialog>

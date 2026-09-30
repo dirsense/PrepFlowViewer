@@ -1,72 +1,176 @@
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const vm=require('./ui-test-context.cjs');
-const source=fs.readFileSync(require.resolve('../web/viewer.js'),'utf8');
-function definition(name){
-  const start=source.indexOf(`function ${name}(`);
-  const end=source.indexOf('\nfunction ',start+1);
-  assert.ok(start>=0,name);
-  return source.slice(start,end<0?undefined:end);
-}
-const connection=(id,server,project,datasource)=>({id,connectionAttributes:{class:'sqlproxy',server,projectname:project,datasourcename:datasource}});
-const a=connection('a','https://TABLEAU.example.com/','Sales','Orders');
-const b=connection('b','https://tableau.example.com','Finance','Budget');
-const c=connection('c','https://other.example.com','Sales','Orders');
-const node=(id,conn)=>({id,name:id,kind:'input',raw:{connectionId:conn.id},connection:conn});
-const model={connections:[a,b,c],nodes:[node('step1',a),node('step2',a),node('step3',b),node('step4',c)]};
-const context=vm.createContext({URL,DATA:model,CAN_EDIT:true,esc:s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),json:JSON.stringify});
-vm.runInContext(['formatFileSize','connectionInfo','connectionGroups','connectionFields','keyValues','connectionsHtml','overviewHelpHtml'].map(definition).join('\n'),context);
-let groups=context.connectionGroups(model);
-assert.equal(groups.length,2);
-assert.equal(groups[0].steps,3);
-assert.equal(groups[0].entries[1].info.project,'Finance');
-assert.equal(groups[0].entries[1].info.datasource,'Budget');
-assert.equal(context.connectionInfo({connectionAttributes:{class:'sqlproxy',site:''}}).site,'Default');
-assert.equal(context.connectionInfo({connectionAttributes:{class:'sqlproxy'}}).site,'');
-assert.equal(context.connectionInfo({connectionAttributes:{class:'sqlproxy',username:'login-user'}}).owner,'');
-assert.equal(context.connectionInfo({connectionAttributes:{class:'sqlproxy',ownername:'demo-owner'}}).owner,'demo-owner');
-assert.equal(Object.keys(context.connectionFields(context.connectionInfo(a))).join(','),'サーバー,プロジェクト名,データソース名');
-let html=context.connectionsHtml();
-assert.match(html,/データソース名/);assert.match(html,/プロジェクト名/);
-assert.equal((html.match(/data-connection-step=/g)||[]).length,4);
-const file={id:'f',name:'Book.xlsx',connectionAttributes:{class:'excel-direct',filename:'C:\\data\\Book.xlsx'}};
-groups=context.connectionGroups({connections:[file],nodes:[node('Sheet1',file),node('Sheet2',file)]});
-assert.equal(groups.length,1);assert.equal(groups[0].steps,2);
-groups=context.connectionGroups({connections:[],nodes:[node('Unregistered',file)]});
-assert.equal(groups.length,1);assert.equal(groups[0].steps,1);
-assert.equal(context.connectionGroups({connections:[],nodes:[]}).length,0);
-assert.equal(context.formatFileSize(null),'—');
-assert.equal(context.formatFileSize(2048),'2.00 KB');
-a.connectionAttributes.datasourcename='<img src=x onerror=bad()>';
-html=context.connectionsHtml();assert.ok(!html.includes('<img'));assert.ok(html.includes('&lt;img'));
-assert.match(context.overviewHelpHtml(),/変更を確定/);
-context.CAN_EDIT=false;assert.match(context.overviewHelpHtml(),/閲覧専用/);
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('./ui-test-context.cjs');
+const { declaration: viewerDeclaration } = require('./viewer-source.cjs');
+const definition = viewerDeclaration;
+const connection = (id, server, project, datasource) => ({
+  id,
+  connectionAttributes: {
+    class: 'sqlproxy',
+    server,
+    projectname: project,
+    datasourcename: datasource,
+  },
+});
+const a = connection('a', 'https://TABLEAU.example.com/', 'Sales', 'Orders');
+const b = connection('b', 'https://tableau.example.com', 'Finance', 'Budget');
+const c = connection('c', 'https://other.example.com', 'Sales', 'Orders');
+const node = (id, conn) => ({
+  id,
+  name: id,
+  kind: 'input',
+  raw: { connectionId: conn.id },
+  connection: conn,
+});
+const model = {
+  connections: [a, b, c],
+  nodes: [node('step1', a), node('step2', a), node('step3', b), node('step4', c)],
+};
+const context = vm.createContext({
+  URL,
+  DATA: model,
+  CAN_EDIT: true,
+  esc: (s) =>
+    String(s ?? '').replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+    ),
+  json: JSON.stringify,
+});
+vm.runInContext(
+  [
+    'formatFileSize',
+    'connectionInfo',
+    'connectionGroups',
+    'connectionFields',
+    'keyValues',
+    'connectionsHtml',
+    'overviewHelpHtml',
+  ]
+    .map(definition)
+    .join('\n'),
+  context,
+);
+let groups = context.connectionGroups(model);
+assert.equal(groups.length, 2);
+assert.equal(groups[0].steps, 3);
+assert.equal(groups[0].entries[1].info.project, 'Finance');
+assert.equal(groups[0].entries[1].info.datasource, 'Budget');
+assert.equal(
+  context.connectionInfo({ connectionAttributes: { class: 'sqlproxy', site: '' } }).site,
+  'Default',
+);
+assert.equal(context.connectionInfo({ connectionAttributes: { class: 'sqlproxy' } }).site, '');
+assert.equal(
+  context.connectionInfo({ connectionAttributes: { class: 'sqlproxy', username: 'login-user' } })
+    .owner,
+  '',
+);
+assert.equal(
+  context.connectionInfo({ connectionAttributes: { class: 'sqlproxy', ownername: 'demo-owner' } })
+    .owner,
+  'demo-owner',
+);
+assert.equal(
+  Object.keys(context.connectionFields(context.connectionInfo(a))).join(','),
+  'サーバー,プロジェクト名,データソース名',
+);
+let html = context.connectionsHtml();
+assert.match(html, /データソース名/);
+assert.match(html, /プロジェクト名/);
+assert.equal((html.match(/data-connection-step=/g) || []).length, 4);
+const file = {
+  id: 'f',
+  name: 'Book.xlsx',
+  connectionAttributes: { class: 'excel-direct', filename: 'C:\\data\\Book.xlsx' },
+};
+groups = context.connectionGroups({
+  connections: [file],
+  nodes: [node('Sheet1', file), node('Sheet2', file)],
+});
+assert.equal(groups.length, 1);
+assert.equal(groups[0].steps, 2);
+groups = context.connectionGroups({ connections: [], nodes: [node('Unregistered', file)] });
+assert.equal(groups.length, 1);
+assert.equal(groups[0].steps, 1);
+assert.equal(context.connectionGroups({ connections: [], nodes: [] }).length, 0);
+assert.equal(context.formatFileSize(null), '—');
+assert.equal(context.formatFileSize(2048), '2.00 KB');
+a.connectionAttributes.datasourcename = '<img src=x onerror=bad()>';
+html = context.connectionsHtml();
+assert.ok(!html.includes('<img'));
+assert.ok(html.includes('&lt;img'));
+assert.match(context.overviewHelpHtml(), /変更を確定/);
+context.CAN_EDIT = false;
+assert.match(context.overviewHelpHtml(), /閲覧専用/);
 // Real LoadSqlProxy layout: server on the shared connection, names on each input step.
-const shared={id:'shared',connectionAttributes:{class:'sqlproxy',server:'https://shared.example.invalid',projectname:'Stale project',datasourcename:'Stale source',site:'Private site',ownername:'Private owner'}};
-const input=(id,project,source)=>({...node(id,shared),nodeType:'.v2019_3_1.LoadSqlProxy',
-  raw:{connectionId:shared.id,connectionAttributes:{class:'sqlproxy',projectName:project,datasourceName:source}},display:{}});
-const first=input('Orders input','営業','Orders'),second=input('Budget input','経理','Budget');
-context.DATA={connections:[shared],nodes:[first,second]};
-groups=context.connectionGroups(context.DATA);
-assert.equal(groups.length,1);assert.equal(groups[0].steps,2);
-assert.equal(context.connectionInfo(shared,first).project,'営業');
-assert.equal(context.connectionInfo(shared,second).datasource,'Budget');
-html=context.connectionsHtml();
-const sections=html.match(/<section class="connection-step">[\s\S]*?<\/section>/g);
-assert.equal(sections.length,2);
-assert.ok(sections[0].includes('営業'));assert.ok(sections[0].includes('Orders'));
-assert.ok(!sections[0].includes('経理'));assert.ok(sections[1].includes('経理'));
-assert.ok(!html.includes('Stale'));assert.ok(!html.includes('<dt>サイト'));assert.ok(!html.includes('<dt>所有者'));
-context.rawDetail=()=>'';
-vm.runInContext(['tableauConnectionHtml','settingsHtml'].map(definition).join('\n'),context);
-html=context.settingsHtml(first);
-assert.ok(html.includes('<dd>営業</dd>'));assert.ok(html.includes('<dd>Orders</dd>'));
+const shared = {
+  id: 'shared',
+  connectionAttributes: {
+    class: 'sqlproxy',
+    server: 'https://shared.example.invalid',
+    projectname: 'Stale project',
+    datasourcename: 'Stale source',
+    site: 'Private site',
+    ownername: 'Private owner',
+  },
+};
+const input = (id, project, source) => ({
+  ...node(id, shared),
+  nodeType: '.v2019_3_1.LoadSqlProxy',
+  raw: {
+    connectionId: shared.id,
+    connectionAttributes: { class: 'sqlproxy', projectName: project, datasourceName: source },
+  },
+  display: {},
+});
+const first = input('Orders input', '営業', 'Orders'),
+  second = input('Budget input', '経理', 'Budget');
+context.DATA = { connections: [shared], nodes: [first, second] };
+groups = context.connectionGroups(context.DATA);
+assert.equal(groups.length, 1);
+assert.equal(groups[0].steps, 2);
+assert.equal(context.connectionInfo(shared, first).project, '営業');
+assert.equal(context.connectionInfo(shared, second).datasource, 'Budget');
+html = context.connectionsHtml();
+const sections = html.match(/<section class="connection-step">[\s\S]*?<\/section>/g);
+assert.equal(sections.length, 2);
+assert.ok(sections[0].includes('営業'));
+assert.ok(sections[0].includes('Orders'));
+assert.ok(!sections[0].includes('経理'));
+assert.ok(sections[1].includes('経理'));
+assert.ok(!html.includes('Stale'));
+assert.ok(!html.includes('<dt>サイト'));
+assert.ok(!html.includes('<dt>所有者'));
+context.rawDetail = () => '';
+vm.runInContext(['tableauConnectionHtml', 'settingsHtml'].map(definition).join('\n'), context);
+html = context.settingsHtml(first);
+assert.ok(html.includes('<dd>営業</dd>'));
+assert.ok(html.includes('<dd>Orders</dd>'));
 assert.ok(html.includes('<dd>https://shared.example.invalid</dd>'));
-assert.ok(!html.includes('<dt>サイト'));assert.ok(!html.includes('<dt>所有者'));
-const rawOnly={...first,connection:{},raw:{connectionAttributes:{class:'sqlproxy',server:'https://standalone.example.invalid',projectName:'Standalone',datasourceName:'Source'}}};
-context.DATA={connections:[],nodes:[rawOnly]};
-assert.equal(context.connectionGroups(context.DATA)[0].title,'https://standalone.example.invalid');
+assert.ok(!html.includes('<dt>サイト'));
+assert.ok(!html.includes('<dt>所有者'));
+const rawOnly = {
+  ...first,
+  connection: {},
+  raw: {
+    connectionAttributes: {
+      class: 'sqlproxy',
+      server: 'https://standalone.example.invalid',
+      projectName: 'Standalone',
+      datasourceName: 'Source',
+    },
+  },
+};
+context.DATA = { connections: [], nodes: [rawOnly] };
+assert.equal(context.connectionGroups(context.DATA)[0].title, 'https://standalone.example.invalid');
 assert.ok(context.connectionsHtml().includes('<dd>Standalone</dd>'));
 assert.ok(context.settingsHtml(rawOnly).includes('<dd>Standalone</dd>'));
-assert.equal(shared.connectionAttributes.projectname,'Stale project','do not mutate shared metadata');
-console.log('Overview: server grouping, input steps, project/data source labels, escaping, file groups, help and sizes passed.');
+assert.equal(
+  shared.connectionAttributes.projectname,
+  'Stale project',
+  'do not mutate shared metadata',
+);
+console.log(
+  'Overview: server grouping, input steps, project/data source labels, escaping, file groups, help and sizes passed.',
+);

@@ -10,13 +10,12 @@ import tempfile
 import time
 import zipfile
 import sys
-from datetime import date
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from build_windows import VERSION, EXE_NAME, archive_password, run_seven_zip
+from build_windows import VERSION, EXE_NAME
 
 
 def model_from(html):
@@ -30,15 +29,16 @@ def config_from(html):
 def verify():
     with tempfile.TemporaryDirectory(prefix='配布検証_', dir=ROOT / 'output') as temporary:
         target = Path(temporary)
-        release = ROOT / 'dist' / f'v{VERSION}_{date.today():%Y%m%d}'
+        release = ROOT / 'dist' / f'PrepFlowViewer-v{VERSION}-Windows-x64.zip'
         unpacked = target / 'PrepFlowViewer'
-        unpacked.mkdir()
-        for filename in ['a.zip', 'b.zip']:
-            run_seven_zip(['x', str(release / filename), '-o' + str(unpacked)], archive_password())
+        with zipfile.ZipFile(release) as archive:
+            archive.extractall(target)
         exe = unpacked / EXE_NAME
         assert exe.is_file()
         assert (exe.parent / '_internal/python313.dll').is_file()
         assert not (exe.parent / 'samples').exists()
+        assert (exe.parent / '操作ガイド.html').is_file()
+        assert (exe.parent / 'はじめに.txt').is_file()
         work = target / 'unrelated-working-folder'
         work.mkdir()
         history = target / 'recent.json'

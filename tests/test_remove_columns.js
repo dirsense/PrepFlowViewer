@@ -1,34 +1,46 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('./ui-test-context.cjs');
-const viewer = fs.readFileSync(require.resolve('../web/viewer.js'), 'utf8');
-const definition = name => {
-  const start = viewer.indexOf(`function ${name}(`), end = viewer.indexOf('\nfunction ', start + 1);
-  assert.ok(start >= 0);
-  return viewer.slice(start, end < 0 ? undefined : end);
-};
+const { declaration: viewerDeclaration } = require('./viewer-source.cjs');
+const definition = viewerDeclaration;
 const context = vm.createContext({
-  esc: v => String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+  esc: (v) =>
+    String(v ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;'),
   actionIcon: () => '<svg></svg>',
 });
 vm.runInContext(['actionHtml', 'fieldChanges'].map(definition).join('\n'), context);
-for (const [locale, title] of Object.entries({ja:'フィールドを削除', en:'Remove fields',
-  fr:'Supprimer les champs', es:'Eliminar campos', de:'Felder entfernen', 'pt-BR':'Remover campos'})) {
+for (const [locale, title] of Object.entries({
+  ja: 'フィールドを削除',
+  en: 'Remove fields',
+  fr: 'Supprimer les champs',
+  es: 'Eliminar campos',
+  de: 'Felder entfernen',
+  'pt-BR': 'Remover campos',
+})) {
   vm.runInContext(`uiLanguage = ${JSON.stringify(locale)}`, context);
   for (const type of ['RemoveColumn', 'RemoveColumns']) {
     const field = 'Order Year <売上>&';
-    const raw = type === 'RemoveColumn' ? {columnName:field} : {columnNames:[field,'Ship Year']};
-    const action = {id:'remove', type, label:'フィールドの削除', expressions:[], raw};
+    const raw =
+      type === 'RemoveColumn' ? { columnName: field } : { columnNames: [field, 'Ship Year'] };
+    const action = { id: 'remove', type, label: 'フィールドの削除', expressions: [], raw };
     const card = context.actionHtml(action, 0);
     assert.ok(card.includes(`<h3>${title}</h3>`), `${locale}: ${card}`);
     assert.ok(card.includes('<span class="chip">Order Year &lt;売上&gt;&amp;</span>'));
     assert.ok(!card.includes('RemoveColumn'));
     if (type === 'RemoveColumns') assert.ok(card.includes('<span class="chip">Ship Year</span>'));
-    const badge = context.fieldChanges({name:field, deleted:true,
-      changes:[{type, label:'フィールドの削除', actionId:'remove'}]});
+    const badge = context.fieldChanges({
+      name: field,
+      deleted: true,
+      changes: [{ type, label: 'フィールドの削除', actionId: 'remove' }],
+    });
     assert.equal((badge.match(/<button/g) || []).length, 1);
     assert.ok(badge.includes('change-icon removed'));
     assert.ok(badge.includes('data-action-id="remove"'));
   }
 }
-console.log('Singular/plural field deletions: translated cards, escaped names and action badges passed.');
+console.log(
+  'Singular/plural field deletions: translated cards, escaped names and action badges passed.',
+);

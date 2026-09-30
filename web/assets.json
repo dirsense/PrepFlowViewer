@@ -1,0 +1,26 @@
+{
+  "scripts": [
+    "i18n.js",
+    "formula.js",
+    "formula-format.js",
+    "formula-edit.js",
+    "filter-display.js",
+    "comment-layout.js",
+    "batch-export.js",
+    "flow-run.js",
+    "output-edit.js",
+    "viewer-state.js",
+    "viewer-graph.js",
+    "viewer-navigation.js",
+    "viewer-formula.js",
+    "viewer-flow-edit.js",
+    "viewer-detail.js",
+    "viewer-overview.js",
+    "viewer-files.js",
+    "viewer-publish.js",
+    "viewer.js"
+  ],
+  "styles": [
+    "viewer.css"
+  ]
+}

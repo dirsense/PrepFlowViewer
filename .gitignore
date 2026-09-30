@@ -8,6 +8,7 @@ publish.ini
 build-password.txt
 *.py[cod]
 .venv/
+node_modules/
 .env
 .env.*
 recent-flows.json
