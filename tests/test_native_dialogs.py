@@ -62,7 +62,7 @@ class NativeDialogTests(unittest.TestCase):
             self.assertTrue(dialog.configure.call_args.kwargs['multiple'])
             choose_directory(title='保存先')
             self.assertTrue(dialog.configure.call_args.kwargs['folder'])
-            choose_file(title='HTMLを保存', directory=Path.cwd(), filename='保存.html', save=True, filetypes=[('HTML', '*.html')])
+            choose_file(title='HTMLを出力', directory=Path.cwd(), filename='保存.html', save=True, filetypes=[('HTML', '*.html')])
             factory.assert_called_with(True)
             self.assertEqual(dialog.configure.call_args.kwargs['filetypes'], [('HTML', '*.html')])
 

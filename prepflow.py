@@ -593,7 +593,10 @@ def html_export_options(options):
 def render_html(model, html_options=None):
     from localization import translation_catalog, SUPPORTED_LANGUAGES, language
     template = (ROOT / "web" / "viewer.html").read_text(encoding="utf-8")
-    css = (ROOT / "web" / "viewer.css").read_text(encoding="utf-8")
+    # Live pages and standalone exports embed the same assets in the same order.
+    assets = json.loads((ROOT / "web" / "assets.json").read_text(encoding="utf-8"))
+    css = "\n".join((ROOT / "web" / name).read_text(encoding="utf-8")
+                    for name in assets["styles"])
     icons = json.loads((ROOT / "web" / "prep-icons.json").read_text(encoding="utf-8"))
     js = "const PREP_ICONS = " + json.dumps(icons) + ";\n"
     options = html_export_options(html_options) if html_options is not None else None
@@ -601,7 +604,8 @@ def render_html(model, html_options=None):
     catalogs = {locale: translation_catalog(locale) for locale in locales if locale != 'ja'}
     js += 'const UI_EXPORT_OPTIONS = ' + json.dumps(options) + ';\n'
     js += "const UI_CATALOGS = " + json.dumps(catalogs, ensure_ascii=True).replace('<', '\\u003c') + ";\n"
-    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8") for name in ("i18n.js", "formula.js", "formula-format.js", "formula-edit.js", "filter-display.js", "comment-layout.js", "batch-export.js", "flow-run.js", "output-edit.js", "viewer.js"))
+    js += "\n".join((ROOT / "web" / name).read_text(encoding="utf-8")
+                    for name in assets["scripts"])
     template = template.replace('<html lang="ja" data-language="ja">',
                                 f'<html lang="{options["defaultLanguage"] if options else language.get()}" data-language="{options["defaultLanguage"] if options else language.get()}">', 1)
     if options:
@@ -1067,7 +1071,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                         return self.respond(200, {'items': batch.folder(folder, payload.get('recursive') is True) if folder else []})
                     if self.path == '/api/batch/destination':
                         with picker_lock:
-                            folder = choose_directory(title='HTMLの保存先フォルダーを選択')
+                            folder = choose_directory(title='HTMLの出力先フォルダーを選択')
                         return self.respond(200, batch.destination(folder) if folder else {'cancelled': True})
                     if self.path == '/api/batch/remove':
                         keys = payload.get('ids')
@@ -1171,7 +1175,7 @@ def serve(source=None, port=8765, open_browser=True, resume=None, history_path=N
                             raise ValueError('保存期限が切れました。フローを開き直してください。')
                         source = model.get('sourcePath')
                         with picker_lock:
-                            destination = choose_file(title='HTMLを保存', save=True,
+                            destination = choose_file(title='HTMLを出力', save=True,
                                 directory=Path(source).parent if source else default_flow_directory(),
                                 filename=Path(model['name']).stem + '.html',
                                 filetypes=[('HTML ファイル', '*.html')])

@@ -3,22 +3,50 @@ const fs = require('node:fs');
 const vm = require('./ui-test-context.cjs');
 
 const elements = new Map();
-const element = id => {
-  if (!elements.has(id)) elements.set(id, {
-    value: '', textContent: '', hidden: false, disabled: false, open: true,
-    close() { this.open = false; }, querySelectorAll() { return []; }
-  });
+const element = (id) => {
+  if (!elements.has(id))
+    elements.set(id, {
+      value: '',
+      textContent: '',
+      hidden: false,
+      disabled: false,
+      open: true,
+      close() {
+        this.open = false;
+      },
+      querySelectorAll() {
+        return [];
+      },
+    });
   return elements.get(id);
 };
-let pending, applied = 0;
-const history = {changes: [], push(change) { this.changes.push(change); }};
+let pending,
+  applied = 0;
+const history = {
+  changes: [],
+  push(change) {
+    this.changes.push(change);
+  },
+};
 const context = vm.createContext({
-  $: element, DATA: {exportKey: 'flow', editRevision: 'revision'}, SERVER: {token: 'local'},
-  fetch: () => new Promise(resolve => { pending = resolve; }),
-  setFlowEditBusy() {}, flowSession: {history},
-  applyEditedModel() { applied++; }, renderDetail() {},
-  requestFlowEdits: async () => { throw Error('preview rejected'); },
-  CAN_EDIT: true, console
+  $: element,
+  DATA: { exportKey: 'flow', editRevision: 'revision' },
+  SERVER: { token: 'local' },
+  fetch: () =>
+    new Promise((resolve) => {
+      pending = resolve;
+    }),
+  setFlowEditBusy() {},
+  flowSession: { history },
+  applyEditedModel() {
+    applied++;
+  },
+  renderDetail() {},
+  requestFlowEdits: async () => {
+    throw Error('preview rejected');
+  },
+  CAN_EDIT: true,
+  console,
 });
 vm.runInContext(fs.readFileSync(require.resolve('../web/output-edit.js'), 'utf8'), context);
 function init() {
@@ -28,7 +56,9 @@ function init() {
   element('output-project').value = 'Parent/Child';
   element('output-name').value = 'Sales';
 }
-function response(value) { pending({ok: true, json: async () => value}); }
+function response(value) {
+  pending({ ok: true, json: async () => value });
+}
 
 (async () => {
   init();
@@ -38,11 +68,15 @@ function response(value) { pending({ok: true, json: async () => value}); }
   assert.equal(element('output-server').disabled, false, 'lookup does not freeze input');
   element('output-project').value = 'Different';
   context.invalidateOutputProject();
-  response({projectId: 'old-id', proof: 'old-proof'});
+  response({ projectId: 'old-id', proof: 'old-proof' });
   await check;
-  assert.equal(element('output-confirm').disabled, true, 'late response cannot verify changed project');
+  assert.equal(
+    element('output-confirm').disabled,
+    true,
+    'late response cannot verify changed project',
+  );
   check = context.verifyOutputProject();
-  response({projectId: 'new-id', proof: 'new-proof'});
+  response({ projectId: 'new-id', proof: 'new-proof' });
   await check;
   assert.equal(element('output-confirm').disabled, false);
   context.closeOutputEditor();
@@ -51,18 +85,27 @@ function response(value) { pending({ok: true, json: async () => value}); }
   init();
   check = context.verifyOutputProject();
   context.closeOutputEditor();
-  response({projectId: 'late-id'});
+  response({ projectId: 'late-id' });
   await check;
-  assert.equal(vm.runInContext('outputEditor', context), null, 'late lookup does not resurrect closed draft');
+  assert.equal(
+    vm.runInContext('outputEditor', context),
+    null,
+    'late lookup does not resurrect closed draft',
+  );
   init();
   element('output-target').value = 'file';
   element('output-format').value = 'hyper';
   element('output-confirm').disabled = false;
-  const confirm = context.confirmOutputEdit({preventDefault() {}});
-  response({change: {kind: 'output'}});
+  const confirm = context.confirmOutputEdit({ preventDefault() {} });
+  response({ change: { kind: 'output' } });
   await confirm;
   assert.equal(history.changes.length, 0, 'failed confirmation does not add undo entry');
   assert.equal(applied, 0, 'failed preview leaves current flow unchanged');
   assert.equal(element('output-error').textContent, 'preview rejected');
-  console.log('Output editor: discard, verification invalidation, stale lookup and failed confirmation passed.');
-})().catch(error => { console.error(error); process.exitCode = 1; });
+  console.log(
+    'Output editor: discard, verification invalidation, stale lookup and failed confirmation passed.',
+  );
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
